@@ -447,6 +447,57 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
 .ref-stat-value{font-size:22px;font-weight:800;color:#fff}
 .ref-stat-value.green{color:#f4a261}
 .ref-share-btn svg{flex-shrink:0}
+
+.bonus-balance-card{background:linear-gradient(135deg,rgba(244,162,97,.08),rgba(244,162,97,.02));border:1px solid rgba(244,162,97,.3);border-radius:18px;padding:16px;margin:0 15px 14px;display:flex;align-items:center;gap:14px;cursor:pointer}
+.bonus-balance-card:active{transform:scale(.99)}
+.bb-icon{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#f4a261,#e76f51);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 12px rgba(244,162,97,.35)}
+.bb-info{flex:1;min-width:0}
+.bb-title{font-size:11px;color:#f4a261;font-weight:800;letter-spacing:.5px;margin-bottom:3px}
+.bb-value{font-size:18px;font-weight:800;color:#fff;line-height:1.2}
+.bb-value span{color:#f4a261}
+.bb-note{font-size:11px;color:#888;margin-top:3px}
+.bb-btn{background:transparent;border:1.5px solid rgba(244,162,97,.5);color:#f4a261;padding:9px 14px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit}
+.bb-btn:active{background:#f4a261;color:#121212}
+
+.wheel-card{background:linear-gradient(135deg,rgba(230,57,70,.15),rgba(244,162,97,.1));border:1px solid rgba(244,162,97,.4);border-radius:18px;padding:16px;margin:0 15px 14px;display:flex;align-items:center;gap:14px;cursor:pointer;position:relative;overflow:hidden}
+.wheel-card:active{transform:scale(.99)}
+.wheel-card:before{content:"";position:absolute;top:-50%;right:-30%;width:180px;height:180px;background:radial-gradient(circle,rgba(244,162,97,.25),transparent 70%);pointer-events:none}
+.wheel-icon{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#e63946,#f4a261);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;box-shadow:0 4px 14px rgba(230,57,70,.4);position:relative;z-index:1}
+.wheel-info{flex:1;min-width:0;position:relative;z-index:1}
+.wheel-title-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.wheel-title{font-size:14px;font-weight:900;letter-spacing:.4px}
+.wheel-badge{background:linear-gradient(135deg,#f4a261,#e76f51);color:#fff;font-size:9px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:.5px}
+.wheel-subtitle{font-size:11px;color:#ccc;line-height:1.4}
+.wheel-btn{background:linear-gradient(135deg,#e63946,#f4a261);border:none;color:#fff;padding:11px 16px;border-radius:12px;font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap;font-family:inherit;box-shadow:0 4px 14px rgba(230,57,70,.4);position:relative;z-index:1}
+.wheel-btn:active{transform:scale(.96)}
+.wheel-btn:disabled{background:#333;color:#666;box-shadow:none;cursor:not-allowed}
+
+.wheel-modal-content{background:#1a1a1a;border-radius:24px;width:100%;max-width:420px;padding:20px;position:relative;animation:modalIn .25s ease}
+.wheel-top{display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-right:40px}
+.wheel-top-icon{width:46px;height:46px;border-radius:14px;background:linear-gradient(135deg,#e63946,#f4a261);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.wheel-top-title{font-size:17px;font-weight:900;letter-spacing:.4px}
+.wheel-top-sub{font-size:12px;color:#aaa;margin-top:2px}
+.wheel-balance-row{display:flex;align-items:center;justify-content:space-between;background:#0a0a0a;border-radius:12px;padding:12px 14px;margin-bottom:16px}
+.wheel-balance-l{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700}
+.wheel-balance-l .coin{color:#f4a261;font-size:18px}
+.wheel-balance-l .val{color:#f4a261}
+.wheel-free-badge{font-size:11px;color:#2ecc71;font-weight:700;display:flex;align-items:center;gap:5px}
+.wheel-free-badge:before{content:"";width:7px;height:7px;border-radius:50%;background:#2ecc71;box-shadow:0 0 6px #2ecc71}
+.wheel-free-badge.used{color:#888}
+.wheel-free-badge.used:before{background:#555;box-shadow:none}
+
+.wheel-stage{position:relative;width:100%;aspect-ratio:1/1;margin:0 auto 18px;display:flex;align-items:center;justify-content:center}
+.wheel-pointer{position:absolute;top:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:24px solid #f4a261;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));z-index:3}
+.wheel-pointer:after{content:"";position:absolute;top:-28px;left:-10px;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#fff,#f4a261 70%);box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.wheel-svg-wrap{width:92%;height:92%;border-radius:50%;overflow:hidden;box-shadow:0 0 0 6px #f4a261,0 0 0 10px #121212,0 0 30px rgba(244,162,97,.4);will-change:transform;transform:rotate(0deg)}
+.wheel-svg-wrap svg{display:block;width:100%;height:100%}
+.wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:22%;height:22%;border-radius:50%;background:radial-gradient(circle at 35% 35%,#ffe28a,#f4a261 60%,#c1121f);border:4px solid #1a1a1a;box-shadow:0 6px 16px rgba(0,0,0,.6),inset 0 -6px 10px rgba(0,0,0,.3);z-index:2;display:flex;align-items:center;justify-content:center;font-size:22px}
+.wheel-spin-btn{width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#e63946,#f4a261);color:#fff;border:none;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;box-shadow:0 6px 20px rgba(230,57,70,.45);letter-spacing:.3px;margin-bottom:10px}
+.wheel-spin-btn:active{transform:scale(.98)}
+.wheel-spin-btn:disabled{background:#2a2a2a;color:#666;box-shadow:none;cursor:not-allowed}
+.wheel-note{text-align:center;font-size:12px;color:#888;line-height:1.5}
+.wheel-note.green{color:#2ecc71;font-weight:600}
+.wheel-note.warn{color:#f4a261}
 </style>
 </head>
 <body>
@@ -516,6 +567,28 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
 <div class="profile-header">
 <div class="avatar" id="user-avatar">V</div>
 <div class="user-info"><h2 id="user-name">Загрузка...</h2><p id="user-username">@...</p><div class="user-id" id="user-id">ID: ...</div></div>
+</div>
+
+<div class="bonus-balance-card" data-action="goto-catalog">
+    <div class="bb-icon">🎁</div>
+    <div class="bb-info">
+        <div class="bb-title">✨ БОНУСНЫЙ БАЛАНС</div>
+        <div class="bb-value"><span id="bb-value">0</span> бонусов</div>
+        <div class="bb-note">1 бонус = 1 ₽ скидки</div>
+    </div>
+    <button class="bb-btn" data-action="goto-catalog">В каталог ›</button>
+</div>
+
+<div class="wheel-card" data-action="open-wheel">
+    <div class="wheel-icon">🎡</div>
+    <div class="wheel-info">
+        <div class="wheel-title-row">
+            <div class="wheel-title">КОЛЕСО ФОРТУНЫ</div>
+            <div class="wheel-badge">FREE</div>
+        </div>
+        <div class="wheel-subtitle">Испытайте удачу! Выигрывайте бонусы каждый день.</div>
+    </div>
+    <button class="wheel-btn" id="wheel-card-btn" data-action="open-wheel">Крутить ›</button>
 </div>
 
 <div class="referral-card">
@@ -738,6 +811,30 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
 </div>
 </div>
 
+<div class="modal-overlay" id="wheel-modal">
+    <div class="wheel-modal-content" data-stop-propagation>
+        <button class="modal-close" data-action="close-wheel">✕</button>
+        <div class="wheel-top">
+            <div class="wheel-top-icon">🎡</div>
+            <div>
+                <div class="wheel-top-title">КОЛЕСО ФОРТУНЫ</div>
+                <div class="wheel-top-sub">Крути каждый день и забирай призы</div>
+            </div>
+        </div>
+        <div class="wheel-balance-row">
+            <div class="wheel-balance-l"><span class="coin">🪙</span> Баланс: <span class="val" id="wheel-balance">0 Б</span></div>
+            <div class="wheel-free-badge" id="wheel-free-badge">Бесплатный спин!</div>
+        </div>
+        <div class="wheel-stage">
+            <div class="wheel-pointer"></div>
+            <div class="wheel-svg-wrap" id="wheel-svg-wrap"></div>
+            <div class="wheel-hub">🎰</div>
+        </div>
+        <button class="wheel-spin-btn" id="wheel-spin-btn" data-action="spin-wheel">🔥 Испытать удачу бесплатно</button>
+        <div class="wheel-note green" id="wheel-note">Бесплатно 1 раз в сутки</div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -757,7 +854,7 @@ const ADMIN_CHAT_IDS = [-5163458852];
    ============================================================ */
 const REF_BOT_USERNAME = 'VapeHab1_bot';
 const REF_BONUS_AMOUNT = 100;
-const BONUS_MAX_PERCENT = 0.15;   // максимум 15% от заказа
+const BONUS_MAX_PERCENT = 0.15;
 
 /* ============================================================
    ВРЕМЕННО: выдать 500 бонусов владельцу. УДАЛИТЬ после теста!
@@ -796,6 +893,22 @@ const SORT_MODES = [
     { id:'rating', label:'🏆 По рейтингу' }
 ];
 
+/* ===== КОЛЕСО ФОРТУНЫ — БЕЗ ДЖЕКПОТА ===== */
+const WHEEL_PRIZES = [
+    { label:'+10 Б',  amount:10,  color:'#e63946', weight:2 },
+    { label:'+20 Б',  amount:20,  color:'#9d4edd', weight:2 },
+    { label:'+15 Б',  amount:15,  color:'#f4a261' },
+    { label:'+30 Б',  amount:30,  color:'#f4c542', weight:2 },
+    { label:'+50 Б',  amount:50,  color:'#2a9d8f' },
+    { label:'+100 Б', amount:100, color:'#2ecc71', weight:0.7 },
+    { label:'+25 Б',  amount:25,  color:'#ff6b9d' },
+    { label:'+40 Б',  amount:40,  color:'#5dade2' },
+    { label:'+75 Б',  amount:75,  color:'#9d4edd' },
+    { label:'+10 Б',  amount:10,  color:'#e63946', weight:2 },
+    { label:'+35 Б',  amount:35,  color:'#f4a261' }
+];
+const SPIN_COOLDOWN_MS = 24*60*60*1000;
+
 /* ===== STATE ===== */
 let isAdmin=false, currentUsername=null, currentUserId=0, currentUser=null;
 let myPerms=[], currentCategory='all', products=[], customAdmins=[], orders=[];
@@ -809,6 +922,9 @@ let referrals = [];
 let bonuses = {};
 let bonusSpendAmount = 0;
 let bonusSpendEnabled = false;
+let lastSpins = {};
+let wheelRotation = 0;
+let wheelSpinning = false;
 
 /* ===== UTILS ===== */
 function getVariantInfo(c){ return VARIANT_CATEGORIES[c] || null; }
@@ -1004,6 +1120,134 @@ function renderReferralStats(){
     if(bonusMenu) bonusMenu.textContent = 'Мои бонусы (' + getMyBonus() + ')';
 }
 
+/* ===== КОЛЕСО — ФУНКЦИИ ===== */
+function canSpinToday(){
+    if(!currentUserId) return false;
+    const last = parseInt(lastSpins[String(currentUserId)]) || 0;
+    return (Date.now() - last) >= SPIN_COOLDOWN_MS;
+}
+function markSpun(){
+    if(!currentUserId) return;
+    lastSpins[String(currentUserId)] = Date.now();
+}
+function timeUntilSpin(){
+    if(!currentUserId) return '';
+    const last = parseInt(lastSpins[String(currentUserId)]) || 0;
+    const diff = SPIN_COOLDOWN_MS - (Date.now() - last);
+    if(diff <= 0) return '';
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    if(h > 0) return h + ' ч ' + m + ' мин';
+    return m + ' мин';
+}
+function pickWeightedIndex(){
+    const weights = WHEEL_PRIZES.map(p => p.weight !== undefined ? p.weight : 1);
+    const total = weights.reduce((a,b)=>a+b,0);
+    let r = Math.random() * total;
+    for(let i=0;i<weights.length;i++){
+        r -= weights[i];
+        if(r <= 0) return i;
+    }
+    return weights.length - 1;
+}
+function buildWheelSvg(){
+    const N = WHEEL_PRIZES.length;
+    const CX = 150, CY = 150, R = 148;
+    let sectors = '';
+    let labels = '';
+    for(let i=0;i<N;i++){
+        const a1 = (i*(360/N) - 90) * Math.PI/180;
+        const a2 = ((i+1)*(360/N) - 90) * Math.PI/180;
+        const x1 = CX + R*Math.cos(a1), y1 = CY + R*Math.sin(a1);
+        const x2 = CX + R*Math.cos(a2), y2 = CY + R*Math.sin(a2);
+        const color = WHEEL_PRIZES[i].color || '#333';
+        sectors += '<path d="M '+CX+' '+CY+' L '+x1+' '+y1+' A '+R+' '+R+' 0 0 1 '+x2+' '+y2+' Z" fill="'+color+'" stroke="#0a0a0a" stroke-width="1.5"/>';
+        const midDeg = i*(360/N) + (360/N)/2;
+        const midRad = (midDeg - 90) * Math.PI/180;
+        const tx = CX + R*0.68*Math.cos(midRad);
+        const ty = CY + R*0.68*Math.sin(midRad);
+        let rot = midDeg;
+        if(rot > 90 && rot < 270) rot += 180;
+        labels += '<text x="'+tx+'" y="'+ty+'" fill="#fff" font-size="14" font-weight="800" text-anchor="middle" dominant-baseline="middle" transform="rotate('+rot+' '+tx+' '+ty+')" style="text-shadow:0 1px 2px rgba(0,0,0,.6)">'+WHEEL_PRIZES[i].label+'</text>';
+    }
+    return '<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg"><g>'+sectors+'</g><g>'+labels+'</g><circle cx="150" cy="150" r="148" fill="none" stroke="#0a0a0a" stroke-width="3"/></svg>';
+}
+function renderWheelSvgIfNeeded(){
+    const el = document.getElementById('wheel-svg-wrap');
+    if(el && !el.dataset.built){
+        el.innerHTML = buildWheelSvg();
+        el.dataset.built = '1';
+    }
+}
+function updateBonusBalanceCard(){
+    const el = document.getElementById('bb-value');
+    if(el) el.textContent = getMyBonus();
+    const wb = document.getElementById('wheel-balance');
+    if(wb) wb.textContent = getMyBonus() + ' Б';
+}
+function updateWheelButton(){
+    const btn = document.getElementById('wheel-spin-btn');
+    const note = document.getElementById('wheel-note');
+    const freeBadge = document.getElementById('wheel-free-badge');
+    const cardBtn = document.getElementById('wheel-card-btn');
+    const canSpin = canSpinToday();
+    if(btn){
+        btn.disabled = !canSpin || wheelSpinning;
+        if(!canSpin && !wheelSpinning){
+            btn.textContent = '⏳ Следующий спин через ' + timeUntilSpin();
+        } else if(wheelSpinning){
+            btn.textContent = '🎡 Крутится...';
+        } else {
+            btn.textContent = '🔥 Испытать удачу бесплатно';
+        }
+    }
+    if(note){
+        if(canSpin){ note.className = 'wheel-note green'; note.textContent = 'Бесплатно 1 раз в сутки'; }
+        else { note.className = 'wheel-note warn'; note.textContent = 'Следующий бесплатный спин через ' + timeUntilSpin(); }
+    }
+    if(freeBadge){
+        if(canSpin){ freeBadge.className = 'wheel-free-badge'; freeBadge.textContent = 'Бесплатный спин!'; }
+        else { freeBadge.className = 'wheel-free-badge used'; freeBadge.textContent = 'Уже использован'; }
+    }
+    if(cardBtn){
+        cardBtn.textContent = canSpin ? 'Крутить ›' : 'Ждать ›';
+    }
+}
+function openWheelModal(){
+    renderWheelSvgIfNeeded();
+    updateBonusBalanceCard();
+    updateWheelButton();
+    document.getElementById('wheel-modal').classList.add('active');
+}
+function closeWheelModal(){
+    document.getElementById('wheel-modal').classList.remove('active');
+}
+async function spinWheel(){
+    if(wheelSpinning) return;
+    if(!canSpinToday()){ showToast('Бесплатный спин уже использован','error'); return; }
+    wheelSpinning = true;
+    updateWheelButton();
+    const idx = pickWeightedIndex();
+    const prize = WHEEL_PRIZES[idx];
+    const sectorCenter = idx * (360/WHEEL_PRIZES.length) + (360/WHEEL_PRIZES.length)/2;
+    const targetRot = 360*6 + (360 - sectorCenter);
+    wheelRotation += targetRot;
+    const wrap = document.getElementById('wheel-svg-wrap');
+    wrap.style.transition = 'transform 4.5s cubic-bezier(0.18,0.85,0.25,1)';
+    wrap.style.transform = 'rotate(' + wheelRotation + 'deg)';
+    setTimeout(async () => {
+        wheelSpinning = false;
+        markSpun();
+        setMyBonus(getMyBonus() + prize.amount);
+        saveDataToCloud();
+        updateBonusBalanceCard();
+        updateWheelButton();
+        renderReferralStats();
+        renderCart();
+        showToast('🎉 Вы выиграли ' + prize.label + '!');
+    }, 4700);
+}
+
 async function sendReferralNotification(referrerId, invitedUser, amount){
     if(!BOT_TOKEN) return;
     const name = ((invitedUser.first_name||'') + ' ' + (invitedUser.last_name||'')).trim() || 'Друг';
@@ -1073,6 +1317,7 @@ async function loadDataFromCloud(silent){
         orders=Array.isArray(data.orders)?data.orders:[];
         referrals=Array.isArray(data.referrals)?data.referrals:[];
         bonuses = (data.bonuses && typeof data.bonuses==='object') ? data.bonuses : {};
+        lastSpins = (data.lastSpins && typeof data.lastSpins==='object') ? data.lastSpins : {};
         console.log('[CLOUD] OK:',products.length,'товаров');
         try{
             localStorage.setItem('vapehab_products',JSON.stringify(products));
@@ -1080,6 +1325,7 @@ async function loadDataFromCloud(silent){
             localStorage.setItem('vapehab_orders',JSON.stringify(orders));
             localStorage.setItem('vapehab_referrals',JSON.stringify(referrals));
             localStorage.setItem('vapehab_bonuses',JSON.stringify(bonuses));
+            localStorage.setItem('vapehab_lastSpins',JSON.stringify(lastSpins));
         }catch(e){}
     }catch(e){
         clearTimeout(tid);
@@ -1090,6 +1336,7 @@ async function loadDataFromCloud(silent){
         try{ orders=JSON.parse(localStorage.getItem('vapehab_orders')||'[]'); }catch(_){ orders=[]; }
         try{ referrals=JSON.parse(localStorage.getItem('vapehab_referrals')||'[]'); }catch(_){ referrals=[]; }
         try{ bonuses=JSON.parse(localStorage.getItem('vapehab_bonuses')||'{}'); }catch(_){ bonuses={}; }
+        try{ lastSpins=JSON.parse(localStorage.getItem('vapehab_lastSpins')||'{}'); }catch(_){ lastSpins={}; }
     }
     isCloudLoading=false;
     const ls=document.getElementById('loading-state'); if(ls) ls.style.display='none';
@@ -1101,6 +1348,7 @@ async function loadDataFromCloud(silent){
     try{ renderUserOrders(); }catch(e){}
     try{ updateAdminOrdersBadge(); }catch(e){}
     try{ renderReferralStats(); }catch(e){}
+    try{ updateBonusBalanceCard(); updateWheelButton(); }catch(e){}
     if(currentDetailProduct){
         const fresh = products.find(p=>p.id===currentDetailProduct.id);
         if(fresh){ currentDetailProduct = fresh; renderProductDetail(); }
@@ -1133,7 +1381,7 @@ async function saveDataToCloud(){
         const res=await fetch(JSONBIN_URL,{
             method:'PUT',
             headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
-            body:JSON.stringify({ products, admins:customAdmins, orders, referrals, bonuses })
+            body:JSON.stringify({ products, admins:customAdmins, orders, referrals, bonuses, lastSpins })
         });
         if(!res.ok){
             console.warn('[CLOUD] Save failed: HTTP '+res.status);
@@ -1143,6 +1391,7 @@ async function saveDataToCloud(){
                 localStorage.setItem('vapehab_orders',JSON.stringify(orders));
                 localStorage.setItem('vapehab_referrals',JSON.stringify(referrals));
                 localStorage.setItem('vapehab_bonuses',JSON.stringify(bonuses));
+                localStorage.setItem('vapehab_lastSpins',JSON.stringify(lastSpins));
             }catch(_){}
             return false;
         }
@@ -1155,6 +1404,7 @@ async function saveDataToCloud(){
             localStorage.setItem('vapehab_orders',JSON.stringify(orders));
             localStorage.setItem('vapehab_referrals',JSON.stringify(referrals));
             localStorage.setItem('vapehab_bonuses',JSON.stringify(bonuses));
+            localStorage.setItem('vapehab_lastSpins',JSON.stringify(lastSpins));
         }catch(_){}
         return false;
     }
@@ -1163,7 +1413,7 @@ async function saveDataToCloud(){
 async function refreshData(){
     showToast('Загрузка из облака...','info');
     await loadDataFromCloud(true);
-    try{ renderAdminList(); renderAdminsList(); renderAdminOrdersList(); renderAdminTabs(); renderUserOrders(); renderFavoritesScreen(); renderReferralStats(); }catch(e){}
+    try{ renderAdminList(); renderAdminsList(); renderAdminOrdersList(); renderAdminTabs(); renderUserOrders(); renderFavoritesScreen(); renderReferralStats(); updateBonusBalanceCard(); updateWheelButton(); }catch(e){}
     showToast('Данные обновлены');
 }
 async function forceRefresh(){
@@ -1181,6 +1431,7 @@ async function runDiagnose(){
     txt+='Заказов: '+orders.length+'\n';
     txt+='Рефералов: '+referrals.length+'\n';
     txt+='Мой баланс бонусов: '+getMyBonus()+'\n';
+    txt+='Спинов сегодня доступно: '+(canSpinToday()?'да':'нет, через '+timeUntilSpin())+'\n';
     txt+='Избранных: '+favorites.length+'\n';
     txt+='REF_BOT_USERNAME: '+REF_BOT_USERNAME+'\n';
     txt+='Моя реф.ссылка: '+(currentUserId?getReferralLink(currentUserId):'(нет id)')+'\n';
@@ -1844,6 +2095,7 @@ async function submitOrder(){
     renderProducts();
     if(currentDetailProduct) renderProductDetail();
     renderReferralStats();
+    updateBonusBalanceCard();
     showToast('Заказ оформлен!');
     switchTab('orders');
 }
@@ -2179,7 +2431,11 @@ const ACTIONS={
     'copy-ref-link':          ()=>copyRefLink(),
     'share-ref-link':         ()=>shareRefLink(),
     'toggle-bonus-spend':     ()=>{ bonusSpendEnabled = !bonusSpendEnabled; if(!bonusSpendEnabled) bonusSpendAmount=0; else { const sub=cart.reduce((s,i)=>s+i.price*i.qty,0); bonusSpendAmount=getMaxSpendableBonus(sub); } renderCart(); },
-    'bonus-max':              ()=>{ const sub=cart.reduce((s,i)=>s+i.price*i.qty,0); bonusSpendAmount=getMaxSpendableBonus(sub); bonusSpendEnabled = bonusSpendAmount>0; renderCart(); }
+    'bonus-max':              ()=>{ const sub=cart.reduce((s,i)=>s+i.price*i.qty,0); bonusSpendAmount=getMaxSpendableBonus(sub); bonusSpendEnabled = bonusSpendAmount>0; renderCart(); },
+    'open-wheel':             ()=>openWheelModal(),
+    'close-wheel':            ()=>closeWheelModal(),
+    'spin-wheel':             ()=>spinWheel(),
+    'goto-catalog':           ()=>{ switchTab('catalog'); }
 };
 document.addEventListener('click', function(e){
     const el=e.target.closest('[data-action]');
@@ -2214,7 +2470,6 @@ async function initApp(){
 
     await loadDataFromCloud();
 
-    /* АВТО-БОНУС владельцу: если у тебя нет бонусов — выдаём 500 */
     try{
         const myKey = String(currentUserId);
         if(currentUserId && OWNER_FREE_BONUS[myKey] && (!bonuses[myKey] || parseInt(bonuses[myKey]) === 0)){
@@ -2228,6 +2483,7 @@ async function initApp(){
     try{ checkIncomingReferral(); }catch(e){}
     try{ renderReferralStats(); }catch(e){}
     try{ renderCart(); }catch(e){}
+    try{ updateBonusBalanceCard(); updateWheelButton(); }catch(e){}
 
     setTimeout(function(){
         const ls=document.getElementById('loading-state');
