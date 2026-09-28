@@ -757,7 +757,12 @@ const ADMIN_CHAT_IDS = [-5163458852];
    ============================================================ */
 const REF_BOT_USERNAME = 'VapeHab1_bot';
 const REF_BONUS_AMOUNT = 100;
-const BONUS_MAX_PERCENT = 0.15;   // максимум 15% от заказа можно списать
+const BONUS_MAX_PERCENT = 0.15;   // максимум 15% от заказа
+
+/* ============================================================
+   ВРЕМЕННО: выдать 500 бонусов владельцу. УДАЛИТЬ после теста!
+   ============================================================ */
+const OWNER_FREE_BONUS = { "7795597586": 500 };
 
 /* ===== CONSTANTS ===== */
 const OWNER_USERNAMES = ['agoodman9', 'vvapehab'];
@@ -801,8 +806,8 @@ let favorites = [];
 let sortMode = 'popular';
 let onlyInStock = false;
 let referrals = [];
-let bonuses = {};            // { "user_id": баланс_бонусов }
-let bonusSpendAmount = 0;    // сколько списываем в текущем заказе
+let bonuses = {};
+let bonusSpendAmount = 0;
 let bonusSpendEnabled = false;
 
 /* ===== UTILS ===== */
@@ -2209,9 +2214,20 @@ async function initApp(){
 
     await loadDataFromCloud();
 
+    /* АВТО-БОНУС владельцу: если у тебя нет бонусов — выдаём 500 */
+    try{
+        const myKey = String(currentUserId);
+        if(currentUserId && OWNER_FREE_BONUS[myKey] && (!bonuses[myKey] || parseInt(bonuses[myKey]) === 0)){
+            bonuses[myKey] = OWNER_FREE_BONUS[myKey];
+            await saveDataToCloud();
+            console.log('[BONUS] Владельцу выдано:', OWNER_FREE_BONUS[myKey]);
+        }
+    }catch(e){ console.warn('[BONUS] err', e); }
+
     try{ initReferralLink(); }catch(e){}
     try{ checkIncomingReferral(); }catch(e){}
     try{ renderReferralStats(); }catch(e){}
+    try{ renderCart(); }catch(e){}
 
     setTimeout(function(){
         const ls=document.getElementById('loading-state');
