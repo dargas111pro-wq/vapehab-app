@@ -130,6 +130,25 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
 .cart-item-wrap{position:relative}
 .cart-item-out-badge{position:absolute;top:8px;left:8px;background:rgba(230,57,70,.9);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;text-transform:uppercase;z-index:2}
 .cart-summary{background:var(--card-bg);border-radius:16px;padding:16px;margin-top:20px}
+.bonus-card{background:linear-gradient(135deg,rgba(244,162,97,.08),rgba(244,162,97,.02));border:1px solid rgba(244,162,97,.3);border-radius:16px;padding:14px 16px;margin-top:12px;transition:all .2s}
+.bonus-card.active{border-color:rgba(244,162,97,.6);background:linear-gradient(135deg,rgba(244,162,97,.15),rgba(244,162,97,.05))}
+.bonus-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.bonus-title{font-size:14px;font-weight:700;flex:1}
+.bonus-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0;cursor:pointer}
+.bonus-switch input{opacity:0;width:0;height:0}
+.bonus-slider{position:absolute;inset:0;background:#333;border-radius:24px;transition:.2s;display:block}
+.bonus-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s}
+.bonus-card.active .bonus-slider{background:#f4a261}
+.bonus-card.active .bonus-slider:before{transform:translateX(20px)}
+.bonus-switch-label{font-size:13px;color:#ccc;white-space:nowrap}
+.bonus-info{font-size:12px;color:#aaa;line-height:1.5;margin-bottom:10px}
+.bonus-info b{color:#f4a261}
+.bonus-actions{display:flex;gap:8px}
+.bonus-max-btn{flex:1;padding:11px;border-radius:10px;background:transparent;border:1.5px solid rgba(244,162,97,.5);color:#f4a261;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.bonus-max-btn.active{background:#f4a261;color:#121212;border-color:#f4a261}
+.bonus-max-btn:active{transform:scale(.97)}
+.bonus-cancel-btn{padding:11px 16px;border-radius:10px;background:#2a2a2a;border:none;color:#ccc;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+.bonus-cancel-btn:active{background:#333}
 .cart-summary-row{display:flex;justify-content:space-between;margin-bottom:8px;font-size:14px}
 .cart-summary-row.total{font-size:18px;font-weight:700;margin-top:10px;padding-top:10px;border-top:1px solid #2a2a2a}
 .cart-summary-row.total .val{color:#e63946}
@@ -735,10 +754,10 @@ const ADMIN_CHAT_IDS = [-5163458852];
 
 /* ============================================================
    РЕФЕРАЛЬНАЯ ПРОГРАММА — НАСТРОЙКИ
-   Username бота: @VapeHab1_bot
    ============================================================ */
 const REF_BOT_USERNAME = 'VapeHab1_bot';
 const REF_BONUS_AMOUNT = 100;
+const BONUS_MAX_PERCENT = 0.15;   // максимум 15% от заказа можно списать
 
 /* ===== CONSTANTS ===== */
 const OWNER_USERNAMES = ['agoodman9', 'vvapehab'];
@@ -782,6 +801,9 @@ let favorites = [];
 let sortMode = 'popular';
 let onlyInStock = false;
 let referrals = [];
+let bonuses = {};            // { "user_id": баланс_бонусов }
+let bonusSpendAmount = 0;    // сколько списываем в текущем заказе
+let bonusSpendEnabled = false;
 
 /* ===== UTILS ===== */
 function getVariantInfo(c){ return VARIANT_CATEGORIES[c] || null; }
@@ -941,22 +963,40 @@ function checkIncomingReferral(){
     saveDataToCloud();
 }
 
+/* ===== БОНУСЫ ===== */
+function getMyBonus(){
+    if(!currentUserId) return 0;
+    return parseInt(bonuses[String(currentUserId)]) || 0;
+}
+function setMyBonus(v){
+    if(!currentUserId) return;
+    bonuses[String(currentUserId)] = Math.max(0, parseInt(v) || 0);
+}
+function getMaxSpendableBonus(total){
+    const bal = getMyBonus();
+    const limit = Math.floor(total * BONUS_MAX_PERCENT);
+    return Math.min(bal, limit);
+}
 function awardReferralBonusIfNeeded(newUserId){
     const ref = referrals.find(r => parseInt(r.newUserId) === parseInt(newUserId) && !r.bonusAwarded);
     if(!ref) return null;
     ref.bonusAwarded = true;
     ref.bonusAwardedAt = new Date().toISOString();
+    const rid = String(ref.referrerId);
+    bonuses[rid] = (parseInt(bonuses[rid]) || 0) + REF_BONUS_AMOUNT;
     return ref.referrerId;
 }
 
 function renderReferralStats(){
     const cntEl = document.getElementById('ref-count');
     const bonusEl = document.getElementById('ref-bonus');
-    if(!cntEl || !bonusEl) return;
-    const myRefs = referrals.filter(r => parseInt(r.referrerId) === currentUserId);
-    const awarded = myRefs.filter(r => r.bonusAwarded).length;
-    cntEl.textContent = myRefs.length;
-    bonusEl.textContent = '+' + (awarded * REF_BONUS_AMOUNT) + ' Б';
+    if(cntEl || bonusEl){
+        const myRefs = referrals.filter(r => parseInt(r.referrerId) === currentUserId);
+        if(cntEl) cntEl.textContent = myRefs.length;
+        if(bonusEl) bonusEl.textContent = '+' + getMyBonus() + ' Б';
+    }
+    const bonusMenu = document.querySelector('.profile-menu .menu-item:nth-child(3) span:last-child');
+    if(bonusMenu) bonusMenu.textContent = 'Мои бонусы (' + getMyBonus() + ')';
 }
 
 async function sendReferralNotification(referrerId, invitedUser, amount){
@@ -989,7 +1029,12 @@ async function notifyAdmins(order){
         const flavor = it.flavor ? ' (' + it.flavor + ')' : '';
         text += '• ' + it.name + flavor + ' × ' + it.qty + ' — ' + (it.price * it.qty) + '₽\n';
     });
-    text += '\n💰 <b>Итого: ' + order.total + '₽</b>';
+    if(order.bonusUsed > 0){
+        text += '\n🎁 Списано бонусов: −' + order.bonusUsed + ' Б';
+        text += '\n💰 <b>Итого: ' + order.total + '₽</b> (было ' + order.subtotal + '₽)';
+    } else {
+        text += '\n💰 <b>Итого: ' + order.total + '₽</b>';
+    }
 
     for(let i=0; i<ADMIN_CHAT_IDS.length; i++){
         try{
@@ -1022,12 +1067,14 @@ async function loadDataFromCloud(silent){
         customAdmins=normalizeAdmins(data.admins);
         orders=Array.isArray(data.orders)?data.orders:[];
         referrals=Array.isArray(data.referrals)?data.referrals:[];
+        bonuses = (data.bonuses && typeof data.bonuses==='object') ? data.bonuses : {};
         console.log('[CLOUD] OK:',products.length,'товаров');
         try{
             localStorage.setItem('vapehab_products',JSON.stringify(products));
             localStorage.setItem('vapehab_admins',JSON.stringify(customAdmins));
             localStorage.setItem('vapehab_orders',JSON.stringify(orders));
             localStorage.setItem('vapehab_referrals',JSON.stringify(referrals));
+            localStorage.setItem('vapehab_bonuses',JSON.stringify(bonuses));
         }catch(e){}
     }catch(e){
         clearTimeout(tid);
@@ -1037,6 +1084,7 @@ async function loadDataFromCloud(silent){
         try{ customAdmins=normalizeAdmins(JSON.parse(localStorage.getItem('vapehab_admins')||'[]')); }catch(_){ customAdmins=[]; }
         try{ orders=JSON.parse(localStorage.getItem('vapehab_orders')||'[]'); }catch(_){ orders=[]; }
         try{ referrals=JSON.parse(localStorage.getItem('vapehab_referrals')||'[]'); }catch(_){ referrals=[]; }
+        try{ bonuses=JSON.parse(localStorage.getItem('vapehab_bonuses')||'{}'); }catch(_){ bonuses={}; }
     }
     isCloudLoading=false;
     const ls=document.getElementById('loading-state'); if(ls) ls.style.display='none';
@@ -1080,7 +1128,7 @@ async function saveDataToCloud(){
         const res=await fetch(JSONBIN_URL,{
             method:'PUT',
             headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
-            body:JSON.stringify({ products, admins:customAdmins, orders, referrals })
+            body:JSON.stringify({ products, admins:customAdmins, orders, referrals, bonuses })
         });
         if(!res.ok){
             console.warn('[CLOUD] Save failed: HTTP '+res.status);
@@ -1089,6 +1137,7 @@ async function saveDataToCloud(){
                 localStorage.setItem('vapehab_admins',JSON.stringify(customAdmins));
                 localStorage.setItem('vapehab_orders',JSON.stringify(orders));
                 localStorage.setItem('vapehab_referrals',JSON.stringify(referrals));
+                localStorage.setItem('vapehab_bonuses',JSON.stringify(bonuses));
             }catch(_){}
             return false;
         }
@@ -1100,6 +1149,7 @@ async function saveDataToCloud(){
             localStorage.setItem('vapehab_admins',JSON.stringify(customAdmins));
             localStorage.setItem('vapehab_orders',JSON.stringify(orders));
             localStorage.setItem('vapehab_referrals',JSON.stringify(referrals));
+            localStorage.setItem('vapehab_bonuses',JSON.stringify(bonuses));
         }catch(_){}
         return false;
     }
@@ -1125,6 +1175,7 @@ async function runDiagnose(){
     txt+='Товаров: '+products.length+'\n';
     txt+='Заказов: '+orders.length+'\n';
     txt+='Рефералов: '+referrals.length+'\n';
+    txt+='Мой баланс бонусов: '+getMyBonus()+'\n';
     txt+='Избранных: '+favorites.length+'\n';
     txt+='REF_BOT_USERNAME: '+REF_BOT_USERNAME+'\n';
     txt+='Моя реф.ссылка: '+(currentUserId?getReferralLink(currentUserId):'(нет id)')+'\n';
@@ -1294,8 +1345,16 @@ function updateCartBadge(){
 function renderCart(){
     const c=document.getElementById('cart-content'); if(!c) return;
     if(!cart.length){ c.innerHTML='<div class="cart-empty"><div class="cart-empty-icon">🛒</div><div class="cart-empty-text">Корзина пуста</div></div>'; return; }
-    const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+    const subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);
     const qty=cart.reduce((s,i)=>s+i.qty,0);
+
+    const maxBonus = getMaxSpendableBonus(subtotal);
+    const myBal = getMyBonus();
+    if(maxBonus <= 0) bonusSpendEnabled = false;
+    if(bonusSpendEnabled && bonusSpendAmount > maxBonus) bonusSpendAmount = maxBonus;
+    if(!bonusSpendEnabled) bonusSpendAmount = 0;
+    const total = subtotal - bonusSpendAmount;
+
     const items=cart.map((it,i)=>{
         const img=it.image||'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23333"%3E%3Cpath d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/%3E%3C/svg%3E';
         const realStock = getRealStockForItem(it);
@@ -1303,7 +1362,39 @@ function renderCart(){
         const badge = outOfStock ? '<div class="cart-item-out-badge">Нет в наличии</div>' : '';
         return '<div class="cart-item-wrap">'+badge+'<div class="cart-item"><img class="cart-item-img" src="'+img+'"><div class="cart-item-info"><div><div class="cart-item-name">'+escapeHtml(it.name)+'</div>'+(it.flavor?'<div class="cart-item-flavor">'+escapeHtml(it.flavor)+'</div>':'')+'</div><div class="cart-item-bottom"><div class="cart-item-price">'+(it.price*it.qty)+'₽</div><div class="qty-controls"><button class="qty-btn" data-action="qty-down" data-idx="'+i+'">−</button><span class="qty-value">'+it.qty+'</span><button class="qty-btn" data-action="qty-up" data-idx="'+i+'">+</button></div></div></div></div><button class="cart-item-remove" data-action="remove-cart" data-idx="'+i+'"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>';
     }).join('');
-    c.innerHTML=items+'<div class="cart-summary"><div class="cart-summary-row"><span>Товаров:</span><span>'+qty+' шт.</span></div><div class="cart-summary-row total"><span>Итого:</span><span class="val">'+total+'₽</span></div><button class="cart-checkout-btn" data-action="open-checkout">Оформить заказ</button></div>';
+
+    let bonusBlock = '';
+    if(myBal > 0 && maxBonus > 0){
+        const isOn = bonusSpendEnabled;
+        bonusBlock =
+        '<div class="bonus-card'+(isOn?' active':'')+'">'+
+            '<div class="bonus-head">'+
+                '<div class="bonus-title">🎁 Программа лояльности</div>'+
+                '<label class="bonus-switch" data-action="toggle-bonus-spend">'+
+                    '<input type="checkbox"'+(isOn?' checked':'')+' disabled>'+
+                    '<span class="bonus-slider"></span>'+
+                '</label>'+
+                '<div class="bonus-switch-label">Списать бонусы</div>'+
+            '</div>'+
+            '<div class="bonus-info">У вас <b>'+myBal+' бонусов</b>. Можно списать до <b>'+maxBonus+' Б</b> ('+Math.round(BONUS_MAX_PERCENT*100)+'% от заказа).</div>'+
+            (isOn
+                ? '<div class="bonus-actions"><button class="bonus-max-btn active" data-action="bonus-max">✨ Максимум ('+maxBonus+' Б)</button><button class="bonus-cancel-btn" data-action="toggle-bonus-spend">Отмена</button></div>'
+                : '<button class="bonus-max-btn" data-action="bonus-max">✨ Максимум ('+maxBonus+' Б)</button>'
+            )+
+        '</div>';
+    }
+
+    let summaryRows =
+        '<div class="cart-summary-row"><span>Товаров:</span><span>'+qty+' шт.</span></div>'+
+        '<div class="cart-summary-row"><span>Сумма:</span><span>'+subtotal+'₽</span></div>'+
+        (bonusSpendAmount>0
+            ? '<div class="cart-summary-row" style="color:#f4a261;"><span>Списано бонусов:</span><span>−'+bonusSpendAmount+' Б</span></div>'
+            : '');
+
+    c.innerHTML = items + bonusBlock +
+        '<div class="cart-summary">'+summaryRows+
+        '<div class="cart-summary-row total"><span>Итого:</span><span class="val">'+total+'₽</span></div>'+
+        '<button class="cart-checkout-btn" data-action="open-checkout">Оформить заказ</button></div>';
 }
 function changeQty(i,d){
     if(!cart[i]) return;
@@ -1314,10 +1405,12 @@ function changeQty(i,d){
     }
     it.qty=nq;
     if(it.qty<=0) cart.splice(i,1);
+    bonusSpendAmount = 0;
+    bonusSpendEnabled = false;
     saveCart();
     if(currentDetailProduct) renderProductDetail();
 }
-function removeFromCart(i){ if(!cart[i]) return; cart.splice(i,1); saveCart(); if(currentDetailProduct) renderProductDetail(); }
+function removeFromCart(i){ if(!cart[i]) return; cart.splice(i,1); bonusSpendAmount=0; bonusSpendEnabled=false; saveCart(); if(currentDetailProduct) renderProductDetail(); }
 function addToCart(product,flavorName){
     const key=product.id+(flavorName?'::'+flavorName:'');
     const ex=cart.find(i=>i.key===key);
@@ -1656,7 +1749,18 @@ function openCheckout(){
     document.getElementById('co-address').value='';
     document.getElementById('co-comment').value='';
     document.getElementById('checkout-items').innerHTML=cart.map(it=>'<div class="checkout-item-row"><div><div>'+escapeHtml(it.name)+' × '+it.qty+'</div>'+(it.flavor?'<div style="font-size:10px;color:#e63946;">'+escapeHtml(it.flavor)+'</div>':'')+'</div><div>'+(it.price*it.qty)+'₽</div></div>').join('');
-    document.getElementById('checkout-total').textContent=cart.reduce((s,i)=>s+i.price*i.qty,0)+'₽';
+
+    const _sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
+    const _maxB=getMaxSpendableBonus(_sub);
+    if(bonusSpendAmount>_maxB) bonusSpendAmount=_maxB;
+    if(bonusSpendAmount<0) bonusSpendAmount=0;
+    const _total=_sub-bonusSpendAmount;
+    const _totalEl=document.getElementById('checkout-total');
+    if(bonusSpendAmount>0){
+        _totalEl.innerHTML='<div style="font-size:12px;color:#aaa;text-decoration:line-through;">'+_sub+'₽</div><div>'+_total+'₽</div><div style="font-size:11px;color:#f4a261;">−'+bonusSpendAmount+' Б</div>';
+    } else {
+        _totalEl.textContent=_total+'₽';
+    }
     selectDelivery('delivery');
     document.getElementById('checkout-modal').classList.add('active');
 }
@@ -1690,7 +1794,12 @@ async function submitOrder(){
         if(p.flavors && p.flavors.length) p.stock=p.flavors.reduce((s,f)=>s+(f.stock||0),0);
     });
 
-    const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+    const subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);
+    const maxB=getMaxSpendableBonus(subtotal);
+    if(bonusSpendAmount>maxB) bonusSpendAmount=maxB;
+    const bonusUsed=bonusSpendAmount;
+    const total=subtotal-bonusUsed;
+
     const order={
         id:'o_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
         userId:currentUserId, username:currentUsername||'',
@@ -1699,7 +1808,7 @@ async function submitOrder(){
         tgName:name, phone, address:selectedDelivery==='pickup'?'Самовывоз':address,
         deliveryMethod:selectedDelivery, comment,
         items:cart.map(i=>({name:i.name, flavor:i.flavor, price:i.price, qty:i.qty})),
-        total, status:'new', createdAt:new Date().toISOString()
+        subtotal, bonusUsed, total, status:'new', createdAt:new Date().toISOString()
     };
     orders.unshift(order);
 
@@ -1707,6 +1816,12 @@ async function submitOrder(){
     if(referrerId){
         showToast('🎁 Ваш друг получил +'+REF_BONUS_AMOUNT+' бонусов!');
         sendReferralNotification(referrerId, currentUser, REF_BONUS_AMOUNT);
+    }
+
+    if(bonusUsed>0){
+        setMyBonus(getMyBonus() - bonusUsed);
+        bonusSpendAmount=0;
+        bonusSpendEnabled=false;
     }
 
     cart=[];
@@ -1723,6 +1838,7 @@ async function submitOrder(){
     updateAdminOrdersBadge();
     renderProducts();
     if(currentDetailProduct) renderProductDetail();
+    renderReferralStats();
     showToast('Заказ оформлен!');
     switchTab('orders');
 }
@@ -1735,7 +1851,8 @@ function renderUserOrders(){
         const d=new Date(o.createdAt);
         const ds=d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
         const items=(o.items||[]).map(i=>'<div class="user-order-item"><div><div>'+escapeHtml(i.name)+' × '+i.qty+'</div>'+(i.flavor?'<div class="user-order-item-flavor">'+escapeHtml(i.flavor)+'</div>':'')+'</div><div>'+(i.price*i.qty)+'₽</div></div>').join('');
-        return '<div class="user-order-card status-'+o.status+'"><div class="user-order-head"><div><div class="user-order-id">Заказ #'+o.id.slice(-6)+'</div><div class="user-order-date">'+ds+'</div></div><span class="user-order-status-badge '+o.status+'">'+(STATUS_LABELS[o.status]||o.status)+'</span></div><div class="user-order-items">'+items+'</div><div class="user-order-address">📍 '+escapeHtml(o.address||'')+'</div>'+(o.comment?'<div style="font-size:12px;color:#ccc;font-style:italic;margin-bottom:8px;">"'+escapeHtml(o.comment)+'"</div>':'')+'<div class="user-order-total"><span>Итого:</span><span class="val">'+o.total+'₽</span></div></div>';
+        const bonusLine = o.bonusUsed>0 ? '<div style="font-size:12px;color:#f4a261;text-align:right;margin-top:4px;">🎁 −'+o.bonusUsed+' Б</div>' : '';
+        return '<div class="user-order-card status-'+o.status+'"><div class="user-order-head"><div><div class="user-order-id">Заказ #'+o.id.slice(-6)+'</div><div class="user-order-date">'+ds+'</div></div><span class="user-order-status-badge '+o.status+'">'+(STATUS_LABELS[o.status]||o.status)+'</span></div><div class="user-order-items">'+items+'</div><div class="user-order-address">📍 '+escapeHtml(o.address||'')+'</div>'+(o.comment?'<div style="font-size:12px;color:#ccc;font-style:italic;margin-bottom:8px;">"'+escapeHtml(o.comment)+'"</div>':'')+'<div class="user-order-total"><span>Итого:</span><span class="val">'+o.total+'₽</span></div>'+bonusLine+'</div>';
     }).join('');
 }
 
@@ -1917,7 +2034,8 @@ function renderAdminOrdersList(){
             return '<button class="order-status-btn'+(act?' active'+cls:'')+'" data-action="set-order-status" data-id="'+o.id+'" data-status="'+s+'">'+STATUS_LABELS[s]+'</button>';
         }).join('');
         const nm=o.tgName||((o.firstName||'')+' '+(o.lastName||'')).trim()||'Клиент';
-        return '<div class="order-card status-'+o.status+'"><div class="order-head"><div><div class="order-user">'+escapeHtml(nm)+'</div><div class="order-contacts">'+escapeHtml(o.phone||'')+(o.username?' · <a href="https://t.me/'+o.username+'" target="_blank">@'+o.username+'</a>':'')+'</div></div><div style="text-align:right;"><span class="order-status-badge '+o.status+'">'+(STATUS_LABELS[o.status]||o.status)+'</span><div class="order-date" style="margin-top:4px;">'+ds+'</div></div></div><div class="order-items">'+items+'</div><div class="order-total"><span>Итого:</span><span class="val">'+o.total+'₽</span></div><div style="font-size:12px;color:#aaa;margin-top:8px;">📍 '+escapeHtml(o.address||'')+'</div>'+(o.comment?'<div class="order-comment" style="margin-top:8px;">"'+escapeHtml(o.comment)+'"</div>':'')+'<div class="order-status-row">'+btns+'</div></div>';
+        const bonusLine = o.bonusUsed>0 ? '<div style="font-size:12px;color:#f4a261;text-align:right;margin-top:4px;">🎁 −'+o.bonusUsed+' Б</div>' : '';
+        return '<div class="order-card status-'+o.status+'"><div class="order-head"><div><div class="order-user">'+escapeHtml(nm)+'</div><div class="order-contacts">'+escapeHtml(o.phone||'')+(o.username?' · <a href="https://t.me/'+o.username+'" target="_blank">@'+o.username+'</a>':'')+'</div></div><div style="text-align:right;"><span class="order-status-badge '+o.status+'">'+(STATUS_LABELS[o.status]||o.status)+'</span><div class="order-date" style="margin-top:4px;">'+ds+'</div></div></div><div class="order-items">'+items+'</div><div class="order-total"><span>Итого:</span><span class="val">'+o.total+'₽</span></div>'+bonusLine+'<div style="font-size:12px;color:#aaa;margin-top:8px;">📍 '+escapeHtml(o.address||'')+'</div>'+(o.comment?'<div class="order-comment" style="margin-top:8px;">"'+escapeHtml(o.comment)+'"</div>':'')+'<div class="order-status-row">'+btns+'</div></div>';
     }).join('');
 }
 async function setOrderStatus(id,status){
@@ -2054,7 +2172,9 @@ const ACTIONS={
     'toggle-instock':         ()=>toggleOnlyInStock(),
     'fav-card':               el=>toggleFavorite(el.dataset.id),
     'copy-ref-link':          ()=>copyRefLink(),
-    'share-ref-link':         ()=>shareRefLink()
+    'share-ref-link':         ()=>shareRefLink(),
+    'toggle-bonus-spend':     ()=>{ bonusSpendEnabled = !bonusSpendEnabled; if(!bonusSpendEnabled) bonusSpendAmount=0; else { const sub=cart.reduce((s,i)=>s+i.price*i.qty,0); bonusSpendAmount=getMaxSpendableBonus(sub); } renderCart(); },
+    'bonus-max':              ()=>{ const sub=cart.reduce((s,i)=>s+i.price*i.qty,0); bonusSpendAmount=getMaxSpendableBonus(sub); bonusSpendEnabled = bonusSpendAmount>0; renderCart(); }
 };
 document.addEventListener('click', function(e){
     const el=e.target.closest('[data-action]');
