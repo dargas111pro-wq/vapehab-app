@@ -733,8 +733,13 @@ try { tg.expand(); tg.setHeaderColor('#121212'); tg.ready(); } catch(e) {}
 const BOT_TOKEN = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20';
 const ADMIN_CHAT_IDS = [-5163458852];
 
-/* ===== РЕФЕРАЛЬНАЯ ПРОГРАММА — НАСТРОЙКИ ===== */
-const REF_APP_URL = 'https://dargas111pro-wq.github.io/vapehab-app/';
+/* ============================================================
+   РЕФЕРАЛЬНАЯ ПРОГРАММА — НАСТРОЙКИ
+   ⚠️ ЗДЕСЬ ВПИШИ USERNAME СВОЕГО БОТА (без @, с _bot на конце)
+   Пример: если бот @vVapeHab_bot → пиши 'vVapeHab_bot'
+   Узнать можно у @BotFather → /mybots → выбрать бота
+   ============================================================ */
+const REF_BOT_USERNAME = 'vVapeHab_bot';   // ←←← ЗАМЕНИ НА СВОЙ
 const REF_BONUS_AMOUNT = 100;
 
 /* ===== CONSTANTS ===== */
@@ -852,7 +857,7 @@ function toggleFavorite(id){
 
 /* ===== РЕФЕРАЛЬНАЯ ПРОГРАММА ===== */
 function getReferralLink(userId){
-    return REF_APP_URL + (REF_APP_URL.indexOf('?')!==-1 ? '&' : '?') + 'startapp=ref_' + userId;
+    return 'https://t.me/' + REF_BOT_USERNAME + '?start=ref_' + userId;
 }
 
 function extractStartParam(){
@@ -1049,6 +1054,7 @@ async function loadDataFromCloud(silent){
         const fresh = products.find(p=>p.id===currentDetailProduct.id);
         if(fresh){ currentDetailProduct = fresh; renderProductDetail(); }
     }
+    return true;
 }
 
 function normalizeAdmins(raw){
@@ -1122,7 +1128,8 @@ async function runDiagnose(){
     txt+='Заказов: '+orders.length+'\n';
     txt+='Рефералов: '+referrals.length+'\n';
     txt+='Избранных: '+favorites.length+'\n';
-    txt+='REF_APP_URL: '+REF_APP_URL+'\n';
+    txt+='REF_BOT_USERNAME: '+REF_BOT_USERNAME+'\n';
+    txt+='Моя реф.ссылка: '+(currentUserId?getReferralLink(currentUserId):'(нет id)')+'\n';
     txt+='--- start_param источники ---\n';
     txt+='tg.initDataUnsafe.start_param: '+((tg.initDataUnsafe&&tg.initDataUnsafe.start_param)||'(нет)')+'\n';
     try{
@@ -2066,7 +2073,7 @@ document.querySelectorAll('.modal-overlay, .sheet-overlay').forEach(function(ov)
 });
 
 /* ===== INIT ===== */
-function initApp(){
+async function initApp(){
     try{ loadFavorites(); }catch(e){}
     try{ sortMode = localStorage.getItem(SORT_KEY) || 'popular'; }catch(e){}
     const sortLabel = document.getElementById('sort-label');
@@ -2082,13 +2089,14 @@ function initApp(){
         if(fi) fi.addEventListener('change', handleImageFile);
     }catch(e){}
 
-    setTimeout(function(){
-        try{ initReferralLink(); }catch(e){}
-        try{ checkIncomingReferral(); }catch(e){}
-        try{ renderReferralStats(); }catch(e){}
-    }, 500);
+    /* Сначала грузим данные из облака, потом обрабатываем входящий реферал,
+       чтобы не перезаписать свежую запись старой версией из облака. */
+    await loadDataFromCloud();
 
-    loadDataFromCloud();
+    try{ initReferralLink(); }catch(e){}
+    try{ checkIncomingReferral(); }catch(e){}
+    try{ renderReferralStats(); }catch(e){}
+
     setTimeout(function(){
         const ls=document.getElementById('loading-state');
         if(ls && ls.style.display!=='none'){
