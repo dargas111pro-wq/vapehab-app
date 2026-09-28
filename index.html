@@ -735,11 +735,9 @@ const ADMIN_CHAT_IDS = [-5163458852];
 
 /* ============================================================
    РЕФЕРАЛЬНАЯ ПРОГРАММА — НАСТРОЙКИ
-   ⚠️ ЗДЕСЬ ВПИШИ USERNAME СВОЕГО БОТА (без @, с _bot на конце)
-   Пример: если бот @vVapeHab_bot → пиши 'vVapeHab_bot'
-   Узнать можно у @BotFather → /mybots → выбрать бота
+   Username бота: @VapeHab1_bot
    ============================================================ */
-const REF_BOT_USERNAME = 'vVapeHab_bot';   // ←←← ЗАМЕНИ НА СВОЙ
+const REF_BOT_USERNAME = 'VapeHab1_bot';
 const REF_BONUS_AMOUNT = 100;
 
 /* ===== CONSTANTS ===== */
@@ -2089,8 +2087,6 @@ async function initApp(){
         if(fi) fi.addEventListener('change', handleImageFile);
     }catch(e){}
 
-    /* Сначала грузим данные из облака, потом обрабатываем входящий реферал,
-       чтобы не перезаписать свежую запись старой версией из облака. */
     await loadDataFromCloud();
 
     try{ initReferralLink(); }catch(e){}
