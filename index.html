@@ -763,7 +763,8 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
         <button class="admin-add-btn" data-action="take-bonus" style="flex:1;margin-top:0;background:linear-gradient(135deg,#666,#444);">Списать</button>
     </div>
     <div class="admin-hint" style="margin-top:12px;">
-        <strong>Как работает:</strong> если у пользователя уже есть бонусы — новая сумма <strong>прибавляется</strong>. При списании — вычитается (не ниже 0).
+        <strong>Как работает:</strong> если у пользователя уже есть бонусы — новая сумма <strong>прибавляется</strong>. При списании — вычитается (не ниже 0).<br>
+        <strong>По @username:</strong> ID ищется в рефералах, заказах и админах. Если не найден — запись сохранится по username, и засчитается когда пользователь сделает первый заказ.
     </div>
     <label class="admin-form-label" style="margin-top:12px;">История операций</label>
     <div id="bonus-log-list"></div>
@@ -867,11 +868,9 @@ const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp 
 };
 try { tg.expand(); tg.setHeaderColor('#121212'); tg.ready(); } catch(e) {}
 
-/* ===== НАСТРОЙКА УВЕДОМЛЕНИЙ ===== */
 const BOT_TOKEN = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20';
 const ADMIN_CHAT_IDS = [-5163458852];
 
-/* ===== 7 СТИКЕРОВ ПРИ НОВОМ ЗАКАЗЕ (случайный) ===== */
 const ORDER_STICKERS = [
     'CAACAgIAAxkBAAER-Dxqu_JDCEZqAAGqzBYH0IyK8K936-4AAr0YAAIFvtlKqUlrGkDH4Uw9BA',
     'CAACAgIAAxkBAAER-D5qu_JNa__YzqH6X_JgRfrz6jEeTAACBXwAAkL9IUlOc_L-XEnzVT0E',
@@ -882,19 +881,12 @@ const ORDER_STICKERS = [
     'CAACAgIAAxkBAAER-E1qu_J_ARuM1ZMQsSA7v-vwXe3NPAACYG0AAvRssEkUnUnGtYQrkj0E'
 ];
 
-/* ============================================================
-   РЕФЕРАЛЬНАЯ ПРОГРАММА — НАСТРОЙКИ
-   ============================================================ */
 const REF_BOT_USERNAME = 'VapeHab_bot';
 const REF_BONUS_AMOUNT = 100;
 const BONUS_MAX_PERCENT = 0.15;
 
-/* ============================================================
-   ВРЕМЕННО: выдать 500 бонусов владельцу. УДАЛИТЬ после теста!
-   ============================================================ */
 const OWNER_FREE_BONUS = { "7795597586": 500 };
 
-/* ===== CONSTANTS ===== */
 const OWNER_USERNAMES = ['agoodman9', 'vvapehab'];
 const JSONBIN_BIN_ID = '6ab83a8cffd5d1605332a04e';
 const JSONBIN_KEY = '$2a$10$jklbojLabuAI27OjJshyJOxAbY3xxV.g1101s8FeoHsWk1Bfe8jQK';
@@ -926,7 +918,6 @@ const SORT_MODES = [
     { id:'rating', label:'🏆 По рейтингу' }
 ];
 
-/* ===== КОЛЕСО ФОРТУНЫ ===== */
 const WHEEL_PRIZES = [
     { label:'+10 Б',  amount:10,  color:'#e63946', weight:2 },
     { label:'+20 Б',  amount:20,  color:'#9d4edd', weight:2 },
@@ -942,7 +933,6 @@ const WHEEL_PRIZES = [
 ];
 const SPIN_COOLDOWN_MS = 24*60*60*1000;
 
-/* ===== STATE ===== */
 let isAdmin=false, currentUsername=null, currentUserId=0, currentUser=null;
 let myPerms=[], currentCategory='all', products=[], customAdmins=[], orders=[];
 let cart=[], currentProduct=null, currentFlavorIndex=-1, newAdminPerms=[];
@@ -960,7 +950,6 @@ let lastSpins = {};
 let wheelRotation = 0;
 let wheelSpinning = false;
 
-/* ===== UTILS ===== */
 function getVariantInfo(c){ return VARIANT_CATEGORIES[c] || null; }
 function escapeHtml(s){
     return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;')
@@ -985,7 +974,6 @@ function showToast(msg,type){
     toastTimeout=setTimeout(()=>t.classList.remove('show'),3500);
 }
 
-/* ===== AVAILABILITY ===== */
 function getRealStockForItem(item){
     const p = products.find(x => x.id === item.productId);
     if(!p) return 0;
@@ -1008,7 +996,6 @@ function getUnavailableItems(){
     return out;
 }
 
-/* ===== ИЗБРАННОЕ ===== */
 function loadFavorites(){
     try{ favorites = JSON.parse(localStorage.getItem(FAV_KEY)||'[]'); }catch(e){ favorites = []; }
 }
@@ -1030,17 +1017,11 @@ function toggleFavorite(id){
     renderFavoritesScreen();
 }
 
-/* ===== РЕФЕРАЛЬНАЯ ПРОГРАММА ===== */
 function getReferralLink(userId){
     return 'https://t.me/' + REF_BOT_USERNAME + '?start=ref_' + userId;
 }
-
 function extractStartParam(){
-    try{
-        if(tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param){
-            return String(tg.initDataUnsafe.start_param);
-        }
-    }catch(e){}
+    try{ if(tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) return String(tg.initDataUnsafe.start_param); }catch(e){}
     try{
         const p = new URLSearchParams(window.location.search);
         const v = p.get('startapp') || p.get('tgWebAppStartParam') || p.get('start') || p.get('ref');
@@ -1066,41 +1047,28 @@ function extractStartParam(){
     }catch(e){}
     return '';
 }
-
 function initReferralLink(){
     const inp = document.getElementById('ref-link-input');
     if(!inp || !currentUserId) return;
     inp.value = getReferralLink(currentUserId);
     inp.onclick = function(){ inp.select(); };
 }
-
 function copyRefLink(){
     const inp = document.getElementById('ref-link-input');
     if(!inp) return;
     inp.select();
-    try{
-        navigator.clipboard.writeText(inp.value);
-        showToast('Ссылка скопирована 📋');
-    }catch(e){
-        try{ document.execCommand('copy'); showToast('Ссылка скопирована 📋'); }catch(_){}
-    }
+    try{ navigator.clipboard.writeText(inp.value); showToast('Ссылка скопирована 📋'); }
+    catch(e){ try{ document.execCommand('copy'); showToast('Ссылка скопирована 📋'); }catch(_){} }
 }
-
 function shareRefLink(){
     if(!currentUserId){ showToast('Открой через Telegram','error'); return; }
     const link = getReferralLink(currentUserId);
     const shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(link) + '&text=' + encodeURIComponent('🎁 VapeHab — забирай бонусы!');
-    try{
-        tg.openTelegramLink(shareUrl);
-    }catch(e){
-        window.open(shareUrl, '_blank');
-    }
+    try{ tg.openTelegramLink(shareUrl); }catch(e){ window.open(shareUrl, '_blank'); }
 }
-
 function checkIncomingReferral(){
     if(!currentUserId) return;
     const startParam = extractStartParam();
-    console.log('[REF] start_param =', startParam);
     if(!startParam || startParam.indexOf('ref_') !== 0) return;
     const referrerId = parseInt(startParam.slice(4)) || 0;
     if(!referrerId || referrerId === currentUserId) return;
@@ -1114,18 +1082,23 @@ function checkIncomingReferral(){
         bonusAwarded: false,
         createdAt: new Date().toISOString()
     });
-    console.log('[REF] Новый реферал:', currentUserId, '←', referrerId);
     saveDataToCloud();
 }
 
-/* ===== БОНУСЫ ===== */
 function getMyBonus(){
     if(!currentUserId) return 0;
-    return parseInt(bonuses[String(currentUserId)]) || 0;
+    let v = parseInt(bonuses[String(currentUserId)]);
+    if(!isNaN(v) && v > 0) return v;
+    if(currentUsername){
+        const byName = parseInt(bonuses['@' + currentUsername.toLowerCase()]);
+        if(!isNaN(byName)) return byName;
+    }
+    return 0;
 }
 function setMyBonus(v){
     if(!currentUserId) return;
     bonuses[String(currentUserId)] = Math.max(0, parseInt(v) || 0);
+    if(currentUsername) delete bonuses['@' + currentUsername.toLowerCase()];
 }
 function getMaxSpendableBonus(total){
     const bal = getMyBonus();
@@ -1142,18 +1115,7 @@ function awardReferralBonusIfNeeded(newUserId){
     return ref.referrerId;
 }
 
-/* ===== ВЫДАЧА БОНУСОВ ВРУЧНУЮ ===== */
-function findUserByRef(ref){
-    const raw = String(ref||'').trim().replace(/^@/,'');
-    if(!raw) return null;
-    if(/^\d+$/.test(raw)){
-        return { userId: parseInt(raw), username: '', display: 'ID ' + raw };
-    }
-    return { userId: 0, username: raw.toLowerCase(), display: '@' + raw.toLowerCase() };
-}
-function userKey(u){
-    return u.userId ? String(u.userId) : '@' + u.username;
-}
+/* ===== ВЫДАЧА БОНУСОВ ===== */
 function renderBonusLog(){
     const el = document.getElementById('bonus-log-list');
     if(!el) return;
@@ -1177,16 +1139,43 @@ async function changeBonus(direction){
     const amount = parseInt(amtInput.value) || 0;
     if(!refRaw){ showToast('Введи @username или ID','error'); return; }
     if(amount <= 0){ showToast('Введи количество','error'); return; }
-    const user = findUserByRef(refRaw);
-    if(!user){ showToast('Неверный формат','error'); return; }
-    const key = userKey(user);
+
+    const raw = refRaw.replace(/^@/,'').toLowerCase();
+    let targetKey = '';
+    let targetDisplay = '';
+
+    if(/^\d+$/.test(raw)){
+        targetKey = String(parseInt(raw));
+        targetDisplay = 'ID ' + raw;
+    } else {
+        let foundUser = referrals.find(r => (r.newUserName||'').toLowerCase() === raw);
+        if(foundUser && foundUser.newUserId){
+            targetKey = String(foundUser.newUserId);
+            targetDisplay = '@' + raw;
+        }
+        if(!targetKey){
+            const ord = orders.find(o => (o.username||'').toLowerCase() === raw);
+            if(ord && ord.userId){ targetKey = String(ord.userId); targetDisplay = '@' + raw; }
+        }
+        if(!targetKey){
+            const ad = customAdmins.find(a => (a.username||'').toLowerCase() === raw && a.userId);
+            if(ad && ad.userId){ targetKey = String(ad.userId); targetDisplay = '@' + raw; }
+        }
+        if(!targetKey){
+            targetKey = '@' + raw;
+            targetDisplay = '@' + raw + ' (начислится когда зайдёт)';
+            showToast('Пользователь ещё не заходил — сохраню по username','info');
+        }
+    }
+
     const delta = direction === 'take' ? -amount : amount;
-    const cur = parseInt(bonuses[key]) || 0;
+    const cur = parseInt(bonuses[targetKey]) || 0;
     const next = Math.max(0, cur + delta);
-    bonuses[key] = next;
+    bonuses[targetKey] = next;
+
     bonusLog.unshift({
-        key: key,
-        display: user.display,
+        key: targetKey,
+        display: targetDisplay,
         amount: delta,
         balanceAfter: next,
         byAdmin: currentUsername || String(currentUserId),
@@ -1196,7 +1185,8 @@ async function changeBonus(direction){
     refInput.value = '';
     amtInput.value = '';
     const ok = await saveDataToCloud();
-    if(ok) showToast((direction === 'take' ? 'Списано ' : 'Начислено ') + amount + ' Б → ' + user.display);
+    if(ok) showToast((direction === 'take' ? 'Списано ' : 'Начислено ') + amount + ' Б → ' + targetDisplay);
+    else showToast('Не сохранилось в облако!','error');
     renderBonusLog();
     renderReferralStats();
     updateBonusBalanceCard();
@@ -1212,16 +1202,12 @@ function renderReferralStats(){
     }
 }
 
-/* ===== КОЛЕСО — ФУНКЦИИ ===== */
 function canSpinToday(){
     if(!currentUserId) return false;
     const last = parseInt(lastSpins[String(currentUserId)]) || 0;
     return (Date.now() - last) >= SPIN_COOLDOWN_MS;
 }
-function markSpun(){
-    if(!currentUserId) return;
-    lastSpins[String(currentUserId)] = Date.now();
-}
+function markSpun(){ if(!currentUserId) return; lastSpins[String(currentUserId)] = Date.now(); }
 function timeUntilSpin(){
     if(!currentUserId) return '';
     const last = parseInt(lastSpins[String(currentUserId)]) || 0;
@@ -1285,13 +1271,9 @@ function updateWheelButton(){
     const canSpin = canSpinToday();
     if(btn){
         btn.disabled = !canSpin || wheelSpinning;
-        if(!canSpin && !wheelSpinning){
-            btn.textContent = '⏳ Следующий спин через ' + timeUntilSpin();
-        } else if(wheelSpinning){
-            btn.textContent = '🎡 Крутится...';
-        } else {
-            btn.textContent = '🔥 Испытать удачу бесплатно';
-        }
+        if(!canSpin && !wheelSpinning) btn.textContent = '⏳ Следующий спин через ' + timeUntilSpin();
+        else if(wheelSpinning) btn.textContent = '🎡 Крутится...';
+        else btn.textContent = '🔥 Испытать удачу бесплатно';
     }
     if(note){
         if(canSpin){ note.className = 'wheel-note green'; note.textContent = 'Бесплатно 1 раз в сутки'; }
@@ -1301,9 +1283,7 @@ function updateWheelButton(){
         if(canSpin){ freeBadge.className = 'wheel-free-badge'; freeBadge.textContent = 'Бесплатный спин!'; }
         else { freeBadge.className = 'wheel-free-badge used'; freeBadge.textContent = 'Уже использован'; }
     }
-    if(cardBtn){
-        cardBtn.textContent = canSpin ? 'Крутить ›' : 'Ждать ›';
-    }
+    if(cardBtn) cardBtn.textContent = canSpin ? 'Крутить ›' : 'Ждать ›';
 }
 function openWheelModal(){
     renderWheelSvgIfNeeded();
@@ -1311,9 +1291,7 @@ function openWheelModal(){
     updateWheelButton();
     document.getElementById('wheel-modal').classList.add('active');
 }
-function closeWheelModal(){
-    document.getElementById('wheel-modal').classList.remove('active');
-}
+function closeWheelModal(){ document.getElementById('wheel-modal').classList.remove('active'); }
 async function spinWheel(){
     if(wheelSpinning) return;
     if(!canSpinToday()){ showToast('Бесплатный спин уже использован','error'); return; }
@@ -1346,14 +1324,12 @@ async function sendReferralNotification(referrerId, invitedUser, amount){
     const text = '🎁 <b>По вашей ссылке пришёл друг!</b>\n\n👤 ' + name + '\n💰 Вы получили +' + amount + ' бонусов';
     try{
         await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: referrerId, text, parse_mode: 'HTML' })
         });
     }catch(e){ console.warn('[REF] notify fail', e); }
 }
 
-/* ===== УВЕДОМЛЕНИЯ ===== */
 async function notifyAdmins(order){
     if(!BOT_TOKEN || !ADMIN_CHAT_IDS.length) return;
     const userName = order.username ? '@' + order.username :
@@ -1376,34 +1352,28 @@ async function notifyAdmins(order){
     } else {
         text += '\n💰 <b>Итого: ' + order.total + '₽</b>';
     }
-
     for(let i=0; i<ADMIN_CHAT_IDS.length; i++){
         try{
             await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: ADMIN_CHAT_IDS[i], text: text, parse_mode: 'HTML', disable_web_page_preview: true })
             });
         }catch(e){ console.error('[NOTIFY]', e); }
     }
 }
-
-/* ===== СТИКЕР ПРИ НОВОМ ЗАКАЗЕ ===== */
 async function sendOrderSticker(){
     if(!BOT_TOKEN || !ADMIN_CHAT_IDS.length || !ORDER_STICKERS.length) return;
     const fileId = ORDER_STICKERS[Math.floor(Math.random()*ORDER_STICKERS.length)];
     for(let i=0; i<ADMIN_CHAT_IDS.length; i++){
         try{
             await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendSticker', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: ADMIN_CHAT_IDS[i], sticker: fileId })
             });
         }catch(e){ console.warn('[STICKER] fail', e); }
     }
 }
 
-/* ===== CLOUD ===== */
 async function loadDataFromCloud(silent){
     if (isCloudLoading) return;
     isCloudLoading=true; cloudError='';
@@ -1426,7 +1396,6 @@ async function loadDataFromCloud(silent){
         bonuses = (data.bonuses && typeof data.bonuses==='object') ? data.bonuses : {};
         lastSpins = (data.lastSpins && typeof data.lastSpins==='object') ? data.lastSpins : {};
         bonusLog = Array.isArray(data.bonusLog) ? data.bonusLog : [];
-        console.log('[CLOUD] OK:',products.length,'товаров');
         try{
             localStorage.setItem('vapehab_products',JSON.stringify(products));
             localStorage.setItem('vapehab_admins',JSON.stringify(customAdmins));
@@ -1439,7 +1408,6 @@ async function loadDataFromCloud(silent){
     }catch(e){
         clearTimeout(tid);
         cloudError=e.name==='AbortError'?'Таймаут сети':(e.message||'Ошибка');
-        console.warn('[CLOUD] Ошибка загрузки:',e);
         try{ products=JSON.parse(localStorage.getItem('vapehab_products')||'[]'); }catch(_){ products=[]; }
         try{ customAdmins=normalizeAdmins(JSON.parse(localStorage.getItem('vapehab_admins')||'[]')); }catch(_){ customAdmins=[]; }
         try{ orders=JSON.parse(localStorage.getItem('vapehab_orders')||'[]'); }catch(_){ orders=[]; }
@@ -1465,7 +1433,6 @@ async function loadDataFromCloud(silent){
     }
     return true;
 }
-
 function normalizeAdmins(raw){
     if(!Array.isArray(raw)) return [];
     return raw.map(item=>{
@@ -1485,7 +1452,6 @@ function normalizeAdmins(raw){
         return null;
     }).filter(Boolean);
 }
-
 async function saveDataToCloud(){
     try{
         const res=await fetch(JSONBIN_URL,{
@@ -1494,7 +1460,6 @@ async function saveDataToCloud(){
             body:JSON.stringify({ products, admins:customAdmins, orders, referrals, bonuses, lastSpins, bonusLog })
         });
         if(!res.ok){
-            console.warn('[CLOUD] Save failed: HTTP '+res.status);
             try{
                 localStorage.setItem('vapehab_products',JSON.stringify(products));
                 localStorage.setItem('vapehab_admins',JSON.stringify(customAdmins));
@@ -1508,7 +1473,6 @@ async function saveDataToCloud(){
         }
         return true;
     }catch(e){
-        console.warn('[CLOUD] Save error:',e);
         try{
             localStorage.setItem('vapehab_products',JSON.stringify(products));
             localStorage.setItem('vapehab_admins',JSON.stringify(customAdmins));
@@ -1521,7 +1485,6 @@ async function saveDataToCloud(){
         return false;
     }
 }
-
 async function refreshData(){
     showToast('Загрузка из облака...','info');
     await loadDataFromCloud(true);
@@ -1543,24 +1506,16 @@ async function runDiagnose(){
     txt+='Заказов: '+orders.length+'\n';
     txt+='Рефералов: '+referrals.length+'\n';
     txt+='Мой баланс бонусов: '+getMyBonus()+'\n';
+    txt+='Ключей в bonuses: '+Object.keys(bonuses).length+'\n';
     txt+='Стикеров: '+ORDER_STICKERS.length+'\n';
-    txt+='Спинов сегодня доступно: '+(canSpinToday()?'да':'нет, через '+timeUntilSpin())+'\n';
+    txt+='Спинов: '+(canSpinToday()?'доступно':'через '+timeUntilSpin())+'\n';
     txt+='Избранных: '+favorites.length+'\n';
     txt+='REF_BOT_USERNAME: '+REF_BOT_USERNAME+'\n';
     txt+='Моя реф.ссылка: '+(currentUserId?getReferralLink(currentUserId):'(нет id)')+'\n';
-    txt+='--- start_param источники ---\n';
-    txt+='tg.initDataUnsafe.start_param: '+((tg.initDataUnsafe&&tg.initDataUnsafe.start_param)||'(нет)')+'\n';
-    try{
-        const p=new URLSearchParams(window.location.search);
-        txt+='URL ?startapp: '+(p.get('startapp')||'(нет)')+'\n';
-        txt+='URL ?tgWebAppStartParam: '+(p.get('tgWebAppStartParam')||'(нет)')+'\n';
-    }catch(e){}
-    txt+='extractStartParam(): '+(extractStartParam()||'(пусто)')+'\n';
     txt+='Ошибка облака: '+(cloudError||'(нет)');
     out.textContent=txt;
 }
 
-/* ===== USER ===== */
 function loadUserData(){
     const user=(tg.initDataUnsafe&&tg.initDataUnsafe.user)||null;
     const nameEl=document.getElementById('user-name');
@@ -1612,7 +1567,6 @@ function updateAdminOrdersBadge(){
     else badge.style.display='none';
 }
 
-/* ===== SORT / FILTER ===== */
 function cycleSortMode(){
     const idx = SORT_MODES.findIndex(s=>s.id===sortMode);
     const next = SORT_MODES[(idx+1)%SORT_MODES.length];
@@ -1635,7 +1589,6 @@ function applySort(list){
     return l;
 }
 
-/* ===== DELIVERY / IMAGE ===== */
 function selectDelivery(method){
     selectedDelivery=method;
     const d=document.getElementById('tab-delivery'), p=document.getElementById('tab-pickup');
@@ -1695,16 +1648,13 @@ function updateFlavorsVisibility(){
     }
 }
 
-/* ===== CART ===== */
 function loadCart(){
     try{ cart=JSON.parse(localStorage.getItem(C_KEY)||'[]'); }catch(e){ cart=[]; }
-    updateCartBadge();
-    renderCart();
+    updateCartBadge(); renderCart();
 }
 function saveCart(){
     localStorage.setItem(C_KEY,JSON.stringify(cart));
-    updateCartBadge();
-    renderCart();
+    updateCartBadge(); renderCart();
 }
 function updateCartBadge(){
     const b=document.getElementById('cart-badge'); if(!b) return;
@@ -1716,7 +1666,6 @@ function renderCart(){
     if(!cart.length){ c.innerHTML='<div class="cart-empty"><div class="cart-empty-icon">🛒</div><div class="cart-empty-text">Корзина пуста</div></div>'; return; }
     const subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);
     const qty=cart.reduce((s,i)=>s+i.qty,0);
-
     const maxBonus = getMaxSpendableBonus(subtotal);
     const myBal = getMyBonus();
     if(maxBonus <= 0) bonusSpendEnabled = false;
@@ -1774,8 +1723,7 @@ function changeQty(i,d){
     }
     it.qty=nq;
     if(it.qty<=0) cart.splice(i,1);
-    bonusSpendAmount = 0;
-    bonusSpendEnabled = false;
+    bonusSpendAmount = 0; bonusSpendEnabled = false;
     saveCart();
     if(currentDetailProduct) renderProductDetail();
 }
@@ -1798,13 +1746,11 @@ function addToCart(product,flavorName){
 }
 function quickAddToCart(id){ const p=products.find(x=>x.id===id); if(p) addToCart(p,null); }
 
-/* ===== CARD HTML ===== */
 function productCardHtml(p, rankIdx){
     const cat=CAT_NAMES[p.category]||p.category;
     const total=getProductTotalStock(p);
     const inStock=total>0;
     const rating=getProductRating(p);
-
     let rankHtml='';
     if(rankIdx!==undefined && rankIdx<4 && products.length>=4){
         const n = rankIdx+1;
@@ -1812,10 +1758,8 @@ function productCardHtml(p, rankIdx){
         const icon = n<=2?'🏆':'🔥';
         rankHtml = '<div class="product-rank '+cls+'">'+icon+' ТОП #'+n+'</div>';
     }
-
     const favActive = isFavorite(p.id) ? ' active' : '';
     const heartHtml = '<button class="product-heart'+favActive+'" data-action="fav-card" data-id="'+p.id+'">'+(favActive?'♥':'♡')+'</button>';
-
     const variants = p.flavors && p.flavors.length ? p.flavors : null;
     let flavorsHtml='';
     if(variants){
@@ -1824,50 +1768,36 @@ function productCardHtml(p, rankIdx){
             vis.map(f=>'<span class="flavor-tag">'+escapeHtml(f.name)+'</span>').join('') +
             (variants.length>2 ? '<span class="flavor-more">Ещё '+(variants.length-2)+'</span>' : '') +
         '</div>';
-    } else {
-        flavorsHtml = '<div class="product-flavors"></div>';
-    }
-
+    } else flavorsHtml = '<div class="product-flavors"></div>';
     const stockHtml = '<div class="product-in-stock'+(inStock?'':' out')+'"><span class="dot"></span>'+(inStock?'В наличии':'Нет в наличии')+'</div>';
-
     const ratingHtml = rating.count
         ? '<span class="product-rating">⭐ '+rating.avg.toFixed(1)+' <span class="cnt">('+rating.count+')</span></span>'
         : '<span class="product-rating">⭐ <span class="cnt">0</span></span>';
-
     const oldPriceHtml = p.oldPrice && p.oldPrice > p.price ? '<span class="product-old-price">'+p.oldPrice+' ₽</span>' : '';
-
     let btnHtml;
-    if(!inStock){
-        btnHtml='<button class="btn-flavor" disabled>Нет в наличии</button>';
-    } else {
+    if(!inStock) btnHtml='<button class="btn-flavor" disabled>Нет в наличии</button>';
+    else {
         const info = getVariantInfo(p.category);
         const btnText = variants ? 'Выбрать '+(info?info.singular:'вариант') : 'В корзину';
         btnHtml='<button class="btn-flavor" data-action="open-flavor" data-id="'+p.id+'">'+btnText+'</button>';
     }
-
     return '<div class="product-card'+(rankIdx!==undefined && rankIdx<4 ? ' rank-'+(rankIdx+1) : '')+'" data-action="open-product" data-id="'+p.id+'">'+
         '<div class="product-wrap">'+
             '<img class="product-image" src="'+(p.image||'')+'" onerror="this.style.opacity=0.3">'+
-            rankHtml +
-            heartHtml +
+            rankHtml + heartHtml +
         '</div>'+
         '<div class="product-info">'+
-            '<div class="product-head">'+
-                '<span class="product-category">'+escapeHtml(cat)+'</span>'+
-                ratingHtml+
-            '</div>'+
+            '<div class="product-head"><span class="product-category">'+escapeHtml(cat)+'</span>'+ratingHtml+'</div>'+
             '<div class="product-name">'+escapeHtml(p.name)+'</div>'+
             flavorsHtml +
             '<div class="product-price-row">'+
                 '<div><span class="product-price">'+p.price+' ₽</span>'+oldPriceHtml+'</div>'+
                 stockHtml+
-            '</div>'+
-            btnHtml+
+            '</div>'+ btnHtml +
         '</div>'+
     '</div>';
 }
 
-/* ===== RENDER PRODUCTS ===== */
 function renderProducts(){
     const grid=document.getElementById('products-grid');
     const empty=document.getElementById('empty-state');
@@ -1888,7 +1818,6 @@ function renderProducts(){
         });
     }
     list = applySort(list);
-
     if(title) title.textContent=currentCategory==='all'?'Каталог':(CAT_NAMES[currentCategory]||'Каталог');
     if(count) count.textContent=list.length?list.length+' шт.':'';
     if(!list.length){ grid.style.display='none'; empty.style.display='block'; return; }
@@ -1896,7 +1825,6 @@ function renderProducts(){
     grid.innerHTML=list.map((p,i)=>productCardHtml(p,i)).join('');
 }
 
-/* ===== FAVORITES SCREEN ===== */
 function renderFavoritesScreen(){
     const grid = document.getElementById('fav-grid');
     const empty = document.getElementById('fav-empty');
@@ -1904,18 +1832,11 @@ function renderFavoritesScreen(){
     if(!grid || !empty) return;
     const list = products.filter(p => isFavorite(p.id));
     if(count) count.textContent = list.length ? list.length+' шт.' : '';
-    if(!list.length){
-        grid.style.display='none';
-        empty.style.display='block';
-        grid.innerHTML='';
-        return;
-    }
-    grid.style.display='';
-    empty.style.display='none';
+    if(!list.length){ grid.style.display='none'; empty.style.display='block'; grid.innerHTML=''; return; }
+    grid.style.display=''; empty.style.display='none';
     grid.innerHTML = list.map((p)=>productCardHtml(p, undefined)).join('');
 }
 
-/* ===== PRODUCT DETAIL ===== */
 function openProductDetail(id){
     const p = products.find(x=>x.id===id);
     if(!p) return;
@@ -1936,34 +1857,21 @@ function pluralReviews(n){
 function renderProductDetail(){
     const p = currentDetailProduct;
     if(!p) return;
-
     document.getElementById('pd-image').src = p.image||'';
     document.getElementById('pd-cat').textContent = CAT_NAMES[p.category]||p.category;
     document.getElementById('pd-name').textContent = p.name;
-
     const reviews = Array.isArray(p.reviews) ? p.reviews : [];
     const avg = reviews.length ? (reviews.reduce((s,r)=>s+(r.rating||5),0)/reviews.length).toFixed(1) : null;
     document.getElementById('pd-rating').innerHTML = avg
         ? '<span class="star">⭐</span> '+avg+' <span class="cnt">('+reviews.length+' '+pluralReviews(reviews.length)+')</span>'
         : '<span class="star">⭐</span> <span class="cnt">(0 отзывов)</span>';
-
     document.getElementById('pd-price').textContent = p.price + ' ₽';
-
     const total = getProductTotalStock(p);
     const stockEl = document.getElementById('pd-stock');
-    if(total<=0){
-        stockEl.className = 'pd-stock out';
-        stockEl.innerHTML = '✕ Нет в наличии';
-    } else if(total <= 3){
-        stockEl.className = 'pd-stock low';
-        stockEl.innerHTML = '⚡ Осталось мало: всего '+total+' шт.';
-    } else {
-        stockEl.className = 'pd-stock';
-        stockEl.innerHTML = '✓ В наличии: '+total+' шт.';
-    }
-
+    if(total<=0){ stockEl.className = 'pd-stock out'; stockEl.innerHTML = '✕ Нет в наличии'; }
+    else if(total <= 3){ stockEl.className = 'pd-stock low'; stockEl.innerHTML = '⚡ Осталось мало: всего '+total+' шт.'; }
+    else { stockEl.className = 'pd-stock'; stockEl.innerHTML = '✓ В наличии: '+total+' шт.'; }
     updateFavButtons(p.id);
-
     const variants = p.flavors && p.flavors.length ? p.flavors : null;
     const fb = document.getElementById('pd-flavors-block');
     if(variants){
@@ -1979,19 +1887,10 @@ function renderProductDetail(){
                 (out?'<button class="pd-flavor-report" data-action="report-flavor" data-flavor="'+escapeHtml(f.name)+'">🔔 Сообщить</button>':'')+
             '</div>';
         }).join('');
-    } else {
-        fb.style.display = 'none';
-    }
-
+    } else fb.style.display = 'none';
     const descEl = document.getElementById('pd-description');
-    if(p.description){
-        descEl.textContent = p.description;
-        descEl.classList.remove('empty');
-    } else {
-        descEl.textContent = 'Описание товара отсутствует.';
-        descEl.classList.add('empty');
-    }
-
+    if(p.description){ descEl.textContent = p.description; descEl.classList.remove('empty'); }
+    else { descEl.textContent = 'Описание товара отсутствует.'; descEl.classList.add('empty'); }
     document.getElementById('pd-reviews-title').innerHTML = '⭐ Отзывы клиентов ('+reviews.length+')';
     const rl = document.getElementById('pd-reviews-list');
     if(reviews.length){
@@ -2002,22 +1901,11 @@ function renderProductDetail(){
             const stars = '★'.repeat(rating) + '<span style="color:#444">' + '★'.repeat(5-rating) + '</span>';
             return '<div class="pd-review"><div class="pd-review-head"><div class="pd-review-author">'+escapeHtml(r.name||'Клиент')+'</div><div class="pd-review-stars">'+stars+'</div></div><div class="pd-review-text">'+escapeHtml(r.text||'')+'</div><div class="pd-review-date">'+ds+'</div></div>';
         }).join('');
-    } else {
-        rl.innerHTML = '<div style="color:#666;font-size:13px;padding:8px 0;">Пока нет отзывов. Будьте первым!</div>';
-    }
-
+    } else rl.innerHTML = '<div style="color:#666;font-size:13px;padding:8px 0;">Пока нет отзывов. Будьте первым!</div>';
     const cta = document.getElementById('pd-bar-cta');
-    if(total<=0){
-        cta.textContent = 'Нет в наличии';
-        cta.disabled = true;
-    } else if(variants){
-        const info = getVariantInfo(p.category);
-        cta.innerHTML = '+ Выбрать '+(info?info.singular:'вариант')+' ('+p.price+' ₽)';
-        cta.disabled = false;
-    } else {
-        cta.innerHTML = '+ Добавить в корзину за '+p.price+' ₽';
-        cta.disabled = false;
-    }
+    if(total<=0){ cta.textContent = 'Нет в наличии'; cta.disabled = true; }
+    else if(variants){ const info = getVariantInfo(p.category); cta.innerHTML = '+ Выбрать '+(info?info.singular:'вариант')+' ('+p.price+' ₽)'; cta.disabled = false; }
+    else { cta.innerHTML = '+ Добавить в корзину за '+p.price+' ₽'; cta.disabled = false; }
 }
 function updateFavButtons(id){
     const fav = isFavorite(id);
@@ -2027,14 +1915,8 @@ function updateFavButtons(id){
     const banner = document.getElementById('pd-fav-banner');
     if(h1){ h1.textContent = fav?'♥':'♡'; h1.classList.toggle('active',fav); }
     if(h2){ h2.textContent = fav?'♥':'♡'; h2.classList.toggle('active',fav); }
-    if(fb){
-        fb.style.display = fav ? 'none' : 'flex';
-        fb.classList.toggle('active',fav);
-        fb.innerHTML = '♡ Добавить в избранное';
-    }
-    if(banner){
-        banner.classList.toggle('active', fav);
-    }
+    if(fb){ fb.style.display = fav ? 'none' : 'flex'; fb.classList.toggle('active',fav); fb.innerHTML = '♡ Добавить в избранное'; }
+    if(banner){ banner.classList.toggle('active', fav); }
 }
 function reportFlavor(flavorName){
     try{ tg.openTelegramLink('https://t.me/Agoodman9'); }catch(e){ window.open('https://t.me/Agoodman9','_blank'); }
@@ -2049,11 +1931,9 @@ function pdCtaClick(){
     else quickAddToCart(p.id);
 }
 
-/* ===== ОТЗЫВЫ ===== */
 function openReviewModal(){
     if(!currentDetailProduct) return;
-    reviewRating = 5;
-    reviewAnonymous = false;
+    reviewRating = 5; reviewAnonymous = false;
     document.getElementById('review-text').value = '';
     const cb = document.getElementById('cb-review-anon');
     if(cb) cb.classList.remove('checked');
@@ -2078,39 +1958,28 @@ async function submitReview(){
     if(!text){ showToast('Напишите отзыв','error'); return; }
     const p = currentDetailProduct;
     if(!Array.isArray(p.reviews)) p.reviews = [];
-
     let authorName;
-    if(reviewAnonymous){
-        authorName = 'Аноним';
-    } else {
+    if(reviewAnonymous) authorName = 'Аноним';
+    else {
         const fn = (currentUser && currentUser.first_name) || '';
         const ln = (currentUser && currentUser.last_name) || '';
         authorName = (fn + (ln ? ' ' + ln.charAt(0) + '.' : '')).trim() || 'Клиент';
     }
-
     p.reviews.unshift({
         userId: reviewAnonymous ? 0 : currentUserId,
-        name: authorName,
-        anonymous: reviewAnonymous,
-        rating: reviewRating,
-        text: text,
-        createdAt: new Date().toISOString()
+        name: authorName, anonymous: reviewAnonymous,
+        rating: reviewRating, text: text, createdAt: new Date().toISOString()
     });
     closeReviewModal();
-    renderProductDetail();
-    renderProducts();
+    renderProductDetail(); renderProducts();
     showToast(reviewAnonymous ? 'Спасибо за анонимный отзыв! ⭐' : 'Спасибо за отзыв! ⭐');
     await saveDataToCloud();
 }
 
-/* ===== CHECKOUT ===== */
 function openCheckout(){
     if(!cart.length){ showToast('Корзина пуста','error'); return; }
     const unavailable = getUnavailableItems();
-    if(unavailable.length){
-        showToast('Нет в наличии: '+unavailable.join(', ')+'. Удалите из корзины.','error');
-        return;
-    }
+    if(unavailable.length){ showToast('Нет в наличии: '+unavailable.join(', ')+'. Удалите из корзины.','error'); return; }
     const fn=(currentUser&&currentUser.first_name)||'';
     const ln=(currentUser&&currentUser.last_name)||'';
     document.getElementById('co-name').value=(fn+' '+ln).trim();
@@ -2118,7 +1987,6 @@ function openCheckout(){
     document.getElementById('co-address').value='';
     document.getElementById('co-comment').value='';
     document.getElementById('checkout-items').innerHTML=cart.map(it=>'<div class="checkout-item-row"><div><div>'+escapeHtml(it.name)+' × '+it.qty+'</div>'+(it.flavor?'<div style="font-size:10px;color:#e63946;">'+escapeHtml(it.flavor)+'</div>':'')+'</div><div>'+(it.price*it.qty)+'₽</div></div>').join('');
-
     const _sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
     const _maxB=getMaxSpendableBonus(_sub);
     if(bonusSpendAmount>_maxB) bonusSpendAmount=_maxB;
@@ -2127,9 +1995,7 @@ function openCheckout(){
     const _totalEl=document.getElementById('checkout-total');
     if(bonusSpendAmount>0){
         _totalEl.innerHTML='<div style="font-size:12px;color:#aaa;text-decoration:line-through;">'+_sub+'₽</div><div>'+_total+'₽</div><div style="font-size:11px;color:#f4a261;">−'+bonusSpendAmount+' Б</div>';
-    } else {
-        _totalEl.textContent=_total+'₽';
-    }
+    } else _totalEl.textContent=_total+'₽';
     selectDelivery('delivery');
     document.getElementById('checkout-modal').classList.add('active');
 }
@@ -2143,15 +2009,11 @@ async function submitOrder(){
     if(!name){ showToast('Введи имя','error'); return; }
     if(!phone){ showToast('Введи телефон','error'); return; }
     if(selectedDelivery==='delivery' && !address){ showToast('Введи адрес','error'); return; }
-
     const unavailable = getUnavailableItems();
     if(unavailable.length){
         showToast('Нет в наличии: '+unavailable.join(', ')+'. Удалите из корзины.','error');
-        closeCheckout();
-        switchTab('cart');
-        return;
+        closeCheckout(); switchTab('cart'); return;
     }
-
     cart.forEach(function(it){
         const p=products.find(x=>x.id===it.productId); if(!p) return;
         if(it.flavor && p.flavors && p.flavors.length){
@@ -2162,13 +2024,11 @@ async function submitOrder(){
         }
         if(p.flavors && p.flavors.length) p.stock=p.flavors.reduce((s,f)=>s+(f.stock||0),0);
     });
-
     const subtotal=cart.reduce((s,i)=>s+i.price*i.qty,0);
     const maxB=getMaxSpendableBonus(subtotal);
     if(bonusSpendAmount>maxB) bonusSpendAmount=maxB;
     const bonusUsed=bonusSpendAmount;
     const total=subtotal-bonusUsed;
-
     const order={
         id:'o_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
         userId:currentUserId, username:currentUsername||'',
@@ -2180,24 +2040,15 @@ async function submitOrder(){
         subtotal, bonusUsed, total, status:'new', createdAt:new Date().toISOString()
     };
     orders.unshift(order);
-
     const referrerId = awardReferralBonusIfNeeded(currentUserId);
     if(referrerId){
         showToast('🎁 Ваш друг получил +'+REF_BONUS_AMOUNT+' бонусов!');
         sendReferralNotification(referrerId, currentUser, REF_BONUS_AMOUNT);
     }
-
-    if(bonusUsed>0){
-        setMyBonus(getMyBonus() - bonusUsed);
-        bonusSpendAmount=0;
-        bonusSpendEnabled=false;
-    }
-
+    if(bonusUsed>0){ setMyBonus(getMyBonus() - bonusUsed); bonusSpendAmount=0; bonusSpendEnabled=false; }
     cart=[];
     localStorage.setItem(C_KEY,'[]');
-    updateCartBadge();
-    renderCart();
-
+    updateCartBadge(); renderCart();
     const btn=document.getElementById('co-submit');
     btn.disabled=true; btn.textContent='Отправка...';
     await saveDataToCloud();
@@ -2227,7 +2078,6 @@ function renderUserOrders(){
     }).join('');
 }
 
-/* ===== ADMIN ===== */
 function openAdmin(){
     if(!isAdmin){ showToast('Нет доступа','error'); return; }
     document.getElementById('admin-modal').classList.add('active');
@@ -2344,7 +2194,6 @@ function renderAdminList(){
         return '<div class="admin-product-row"><img class="admin-product-img" src="'+(p.image||'')+'" onerror="this.style.display=\'none\'"><div class="admin-product-info"><div class="admin-product-name">'+escapeHtml(p.name)+'</div><div class="admin-product-meta">'+(CAT_NAMES[p.category]||p.category)+' • '+p.price+'₽'+vi+si+'</div></div><div class="admin-product-actions"><button class="admin-action-btn edit" data-action="edit-product" data-id="'+p.id+'"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="admin-action-btn delete" data-action="delete-product" data-id="'+p.id+'"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button></div></div>';
     }).join('');
 }
-
 function togglePerm(perm){
     const i=newAdminPerms.indexOf(perm);
     if(i===-1) newAdminPerms.push(perm); else newAdminPerms.splice(i,1);
@@ -2419,7 +2268,6 @@ async function setOrderStatus(id,status){
     if(ok) showToast('Статус: '+(STATUS_LABELS[status]||status));
 }
 
-/* ===== FLAVOR SHEET ===== */
 function openFlavorSheet(id){
     const p=products.find(x=>x.id===id); if(!p) return;
     const variants=p.flavors&&p.flavors.length?p.flavors:null;
@@ -2432,11 +2280,9 @@ function openFlavorSheet(id){
     document.getElementById('fs-price').innerHTML=p.price+'₽ <span class="unit">/ шт.</span>';
     const info=getVariantInfo(p.category);
     document.getElementById('fs-header-word').textContent=info?info.word:'ВАРИАНТ';
-
     const availList=variants.map(f=>f.stock||0);
     const availCount=availList.filter(x=>x>0).length;
     document.getElementById('fs-count').textContent='Доступно: '+availCount;
-
     document.getElementById('fs-list').innerHTML=variants.map((f,i)=>{
         const s=availList[i], out=s<=0;
         return '<div class="flavor-item'+(out?' out':'')+'" data-flavor-idx="'+i+'"><div class="flavor-item-info"><div class="flavor-item-name">'+escapeHtml(f.name)+'</div><div class="flavor-item-stock '+(out?'out':'avail')+'">'+(out?'✕ Нет в наличии':'● '+s+' шт.')+'</div></div><button class="flavor-select-btn'+(out?' disabled':'')+'" data-action="select-flavor" data-idx="'+i+'"'+(out?' disabled':'')+'>'+(out?'Нет':'Выбрать')+'</button></div>';
@@ -2479,7 +2325,6 @@ function closeFlavorSheet(){
     currentProduct=null; currentFlavorIndex=-1;
 }
 
-/* ===== TABS ===== */
 function switchTab(tab){
     document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active',el.dataset.tab===tab));
     document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -2495,7 +2340,6 @@ function filterCategory(cat){
     renderProducts();
 }
 
-/* ===== EVENT DELEGATION ===== */
 const ACTIONS={
     'switch-tab':             el=>switchTab(el.dataset.tab),
     'filter-category':        el=>filterCategory(el.dataset.cat),
@@ -2569,7 +2413,6 @@ document.querySelectorAll('.modal-overlay, .sheet-overlay').forEach(function(ov)
     });
 });
 
-/* ===== INIT ===== */
 async function initApp(){
     try{ loadFavorites(); }catch(e){}
     try{ sortMode = localStorage.getItem(SORT_KEY) || 'popular'; }catch(e){}
@@ -2593,9 +2436,8 @@ async function initApp(){
         if(currentUserId && OWNER_FREE_BONUS[myKey] && (!bonuses[myKey] || parseInt(bonuses[myKey]) === 0)){
             bonuses[myKey] = OWNER_FREE_BONUS[myKey];
             await saveDataToCloud();
-            console.log('[BONUS] Владельцу выдано:', OWNER_FREE_BONUS[myKey]);
         }
-    }catch(e){ console.warn('[BONUS] err', e); }
+    }catch(e){}
 
     try{ initReferralLink(); }catch(e){}
     try{ checkIncomingReferral(); }catch(e){}
