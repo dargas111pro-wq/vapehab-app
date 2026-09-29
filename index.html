@@ -254,6 +254,11 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
 .diag-btn svg{width:15px;height:15px;stroke:currentColor;stroke-width:2;fill:none}
 .diag-output{background:#0a0a0a;border-radius:10px;padding:12px;font-size:11px;font-family:monospace;color:#aaa;max-height:250px;overflow:auto;white-space:pre-wrap;margin-bottom:14px;display:none;line-height:1.5}
 .diag-output.active{display:block}
+.bonus-log-row{background:#141414;border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:12px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.bonus-log-row .who{color:#fff;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.bonus-log-row .amt{color:#f4a261;font-weight:700;white-space:nowrap}
+.bonus-log-row .amt.minus{color:#e63946}
+.bonus-log-row .when{color:#666;font-size:10px;white-space:nowrap}
 .order-card{background:#141414;border-radius:14px;padding:14px;margin-bottom:12px;border-left:3px solid #e63946}
 .order-card.status-new{border-left-color:#e63946}
 .order-card.status-processing{border-left-color:#f4a261}
@@ -623,7 +628,6 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
 <div class="profile-menu">
 <div class="menu-item admin-item" id="admin-btn" style="display:none;" data-action="open-admin"><span class="menu-icon">🛠</span><span>Админка</span><span class="menu-badge" id="admin-orders-badge" style="display:none;">0</span></div>
 <div class="menu-item refresh-item" data-action="force-refresh"><span class="menu-icon">🔄</span><span>Обновить из облака</span></div>
-<div class="menu-item"><span class="menu-icon">⭐</span><span>Мои бонусы (0)</span></div>
 <div class="menu-item"><span class="menu-icon">⚙️</span><span>Настройки</span></div>
 <div class="menu-item" data-action="open-support"><span class="menu-icon">💬</span><span>Поддержка</span></div>
 </div>
@@ -745,8 +749,26 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
 <button class="modal-close" data-action="close-admin">✕</button>
 <h1 class="admin-title"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>Админка</h1>
 <button class="admin-refresh-btn" data-action="refresh-data"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>Обновить из облака</button>
+<button class="admin-refresh-btn" data-action="open-bonus-panel" style="background:rgba(244,162,97,.1);border-color:rgba(244,162,97,.3);color:#f4a261;">
+<svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4.5 2 7L12 16l-6.5 4.5 2-7L2 9h7z"/></svg>🎁 Выдать бонусы</button>
 <button class="diag-btn" data-action="diagnose"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Диагностика</button>
 <div class="diag-output" id="diag-output"></div>
+
+<div id="panel-bonuses" style="display:none;background:#141414;border-radius:14px;padding:14px;margin-bottom:14px;border:1px solid rgba(244,162,97,.3);">
+    <label class="admin-form-label">🎁 Выдать бонусы пользователю</label>
+    <input class="admin-form-input" type="text" id="bonus-user-input" placeholder="@username или ID (например 7795597586)" autocomplete="off" style="margin-bottom:10px;">
+    <input class="admin-form-input" type="number" id="bonus-amount-input" placeholder="Количество бонусов" min="1" style="margin-bottom:10px;">
+    <div style="display:flex;gap:8px;">
+        <button class="admin-add-btn" data-action="give-bonus" style="flex:1;margin-top:0;">Начислить</button>
+        <button class="admin-add-btn" data-action="take-bonus" style="flex:1;margin-top:0;background:linear-gradient(135deg,#666,#444);">Списать</button>
+    </div>
+    <div class="admin-hint" style="margin-top:12px;">
+        <strong>Как работает:</strong> если у пользователя уже есть бонусы — новая сумма <strong>прибавляется</strong>. При списании — вычитается (не ниже 0).
+    </div>
+    <label class="admin-form-label" style="margin-top:12px;">История операций</label>
+    <div id="bonus-log-list"></div>
+</div>
+
 <div class="admin-tabs" id="admin-tabs"></div>
 <div class="admin-panel" id="panel-add">
 <input type="hidden" id="edit-id" value="">
@@ -849,14 +871,15 @@ try { tg.expand(); tg.setHeaderColor('#121212'); tg.ready(); } catch(e) {}
 const BOT_TOKEN = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20';
 const ADMIN_CHAT_IDS = [-5163458852];
 
-/* ===== 6 СТИКЕРОВ ПРИ НОВОМ ЗАКАЗЕ (случайный) ===== */
+/* ===== 7 СТИКЕРОВ ПРИ НОВОМ ЗАКАЗЕ (случайный) ===== */
 const ORDER_STICKERS = [
-    'CAACAgIAAxkBAAEBWtAvaJTWr1d0hkffYWy2qgSmbAkr9wAComEAAkAqbElv4K1c0nsZ-rg2HTQE',
-    'CAACAgIAAxkBAAEBWtMvaJTZWvvBUiEdAACXcwf1E7oAWIBYSPwAAnIEAAKdBOBLu5-CPlJsc8OhNAQ',
-    'CAACAgIAAxkBAAEBWtYvaJTdSKh7DcMOOo_vrCNP2W1IdgACcwIAAlBpQUgp1B1q_0R5px4E',
-    'CAACAgIAAxkBAAEBWtkvaJThbpN2sKOJVbVpJKM2oBhFdgACXwIAAtWxBEnb4WMxrVCJIR4E',
-    'CAACAgIAAxkBAAEBWtwvaJTkprnbR3VwyiIysXqtf6J7cgACewIAAnc5AUjP9LW4WJ4dgh4E',
-    'CAACAgIAAxkBAAEBWt8vaJTnB8J7KvupE5YlJhDPDse1dwACdAIAAi89AUnHcHosJHHSAB4E'
+    'CAACAgIAAxkBAAER-Dxqu_JDCEZqAAGqzBYH0IyK8K936-4AAr0YAAIFvtlKqUlrGkDH4Uw9BA',
+    'CAACAgIAAxkBAAER-D5qu_JNa__YzqH6X_JgRfrz6jEeTAACBXwAAkL9IUlOc_L-XEnzVT0E',
+    'CAACAgIAAxkBAAER-EBqu_JVNXLjwEK9RB-8CK4EVutovAAC-xUAAqJi8UiWlKoSmWPXjj0E',
+    'CAACAgIAAxkBAAER-EJqu_JfAr_bu3yTl8A5JvdmaTTtzQACuxcAAnZd0Ek3pVO4H1JC3j0E',
+    'CAACAgIAAxkBAAER-ERqu_JtYFfixXz_WH5X6ZRSvhvcoQAClnIAArchWUu1mtja4bHuqD0E',
+    'CAACAgIAAxkBAAER-Elqu_J2i-RminibJday5CBnvV2OnQACPWwAApOgkEm5i-kacubwDD0E',
+    'CAACAgIAAxkBAAER-E1qu_J_ARuM1ZMQsSA7v-vwXe3NPAACYG0AAvRssEkUnUnGtYQrkj0E'
 ];
 
 /* ============================================================
@@ -903,7 +926,7 @@ const SORT_MODES = [
     { id:'rating', label:'🏆 По рейтингу' }
 ];
 
-/* ===== КОЛЕСО ФОРТУНЫ — БЕЗ ДЖЕКПОТА ===== */
+/* ===== КОЛЕСО ФОРТУНЫ ===== */
 const WHEEL_PRIZES = [
     { label:'+10 Б',  amount:10,  color:'#e63946', weight:2 },
     { label:'+20 Б',  amount:20,  color:'#9d4edd', weight:2 },
@@ -930,6 +953,7 @@ let sortMode = 'popular';
 let onlyInStock = false;
 let referrals = [];
 let bonuses = {};
+let bonusLog = [];
 let bonusSpendAmount = 0;
 let bonusSpendEnabled = false;
 let lastSpins = {};
@@ -1118,6 +1142,66 @@ function awardReferralBonusIfNeeded(newUserId){
     return ref.referrerId;
 }
 
+/* ===== ВЫДАЧА БОНУСОВ ВРУЧНУЮ ===== */
+function findUserByRef(ref){
+    const raw = String(ref||'').trim().replace(/^@/,'');
+    if(!raw) return null;
+    if(/^\d+$/.test(raw)){
+        return { userId: parseInt(raw), username: '', display: 'ID ' + raw };
+    }
+    return { userId: 0, username: raw.toLowerCase(), display: '@' + raw.toLowerCase() };
+}
+function userKey(u){
+    return u.userId ? String(u.userId) : '@' + u.username;
+}
+function renderBonusLog(){
+    const el = document.getElementById('bonus-log-list');
+    if(!el) return;
+    if(!bonusLog.length){
+        el.innerHTML = '<div class="admin-empty" style="padding:16px;">Операций пока нет</div>';
+        return;
+    }
+    el.innerHTML = bonusLog.slice(0,30).map(function(item){
+        const d = new Date(item.createdAt||Date.now());
+        const ds = d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        const sign = item.amount > 0 ? '+' : '';
+        const cls = item.amount > 0 ? '' : ' minus';
+        return '<div class="bonus-log-row"><span class="who">'+escapeHtml(item.display||item.key||'—')+'</span><span class="amt'+cls+'">'+sign+item.amount+' Б</span><span class="when">'+ds+'</span></div>';
+    }).join('');
+}
+async function changeBonus(direction){
+    if(!isAdmin || !hasPerm('admins')){ showToast('Нет доступа','error'); return; }
+    const refInput = document.getElementById('bonus-user-input');
+    const amtInput = document.getElementById('bonus-amount-input');
+    const refRaw = refInput.value.trim();
+    const amount = parseInt(amtInput.value) || 0;
+    if(!refRaw){ showToast('Введи @username или ID','error'); return; }
+    if(amount <= 0){ showToast('Введи количество','error'); return; }
+    const user = findUserByRef(refRaw);
+    if(!user){ showToast('Неверный формат','error'); return; }
+    const key = userKey(user);
+    const delta = direction === 'take' ? -amount : amount;
+    const cur = parseInt(bonuses[key]) || 0;
+    const next = Math.max(0, cur + delta);
+    bonuses[key] = next;
+    bonusLog.unshift({
+        key: key,
+        display: user.display,
+        amount: delta,
+        balanceAfter: next,
+        byAdmin: currentUsername || String(currentUserId),
+        createdAt: new Date().toISOString()
+    });
+    if(bonusLog.length > 200) bonusLog = bonusLog.slice(0,200);
+    refInput.value = '';
+    amtInput.value = '';
+    const ok = await saveDataToCloud();
+    if(ok) showToast((direction === 'take' ? 'Списано ' : 'Начислено ') + amount + ' Б → ' + user.display);
+    renderBonusLog();
+    renderReferralStats();
+    updateBonusBalanceCard();
+}
+
 function renderReferralStats(){
     const cntEl = document.getElementById('ref-count');
     const bonusEl = document.getElementById('ref-bonus');
@@ -1126,8 +1210,6 @@ function renderReferralStats(){
         if(cntEl) cntEl.textContent = myRefs.length;
         if(bonusEl) bonusEl.textContent = '+' + getMyBonus() + ' Б';
     }
-    const bonusMenu = document.querySelector('.profile-menu .menu-item:nth-child(3) span:last-child');
-    if(bonusMenu) bonusMenu.textContent = 'Мои бонусы (' + getMyBonus() + ')';
 }
 
 /* ===== КОЛЕСО — ФУНКЦИИ ===== */
@@ -1343,6 +1425,7 @@ async function loadDataFromCloud(silent){
         referrals=Array.isArray(data.referrals)?data.referrals:[];
         bonuses = (data.bonuses && typeof data.bonuses==='object') ? data.bonuses : {};
         lastSpins = (data.lastSpins && typeof data.lastSpins==='object') ? data.lastSpins : {};
+        bonusLog = Array.isArray(data.bonusLog) ? data.bonusLog : [];
         console.log('[CLOUD] OK:',products.length,'товаров');
         try{
             localStorage.setItem('vapehab_products',JSON.stringify(products));
@@ -1351,6 +1434,7 @@ async function loadDataFromCloud(silent){
             localStorage.setItem('vapehab_referrals',JSON.stringify(referrals));
             localStorage.setItem('vapehab_bonuses',JSON.stringify(bonuses));
             localStorage.setItem('vapehab_lastSpins',JSON.stringify(lastSpins));
+            localStorage.setItem('vapehab_bonusLog',JSON.stringify(bonusLog));
         }catch(e){}
     }catch(e){
         clearTimeout(tid);
@@ -1362,6 +1446,7 @@ async function loadDataFromCloud(silent){
         try{ referrals=JSON.parse(localStorage.getItem('vapehab_referrals')||'[]'); }catch(_){ referrals=[]; }
         try{ bonuses=JSON.parse(localStorage.getItem('vapehab_bonuses')||'{}'); }catch(_){ bonuses={}; }
         try{ lastSpins=JSON.parse(localStorage.getItem('vapehab_lastSpins')||'{}'); }catch(_){ lastSpins={}; }
+        try{ bonusLog=JSON.parse(localStorage.getItem('vapehab_bonusLog')||'[]'); }catch(_){ bonusLog=[]; }
     }
     isCloudLoading=false;
     const ls=document.getElementById('loading-state'); if(ls) ls.style.display='none';
@@ -1406,7 +1491,7 @@ async function saveDataToCloud(){
         const res=await fetch(JSONBIN_URL,{
             method:'PUT',
             headers:{'Content-Type':'application/json','X-Master-Key':JSONBIN_KEY},
-            body:JSON.stringify({ products, admins:customAdmins, orders, referrals, bonuses, lastSpins })
+            body:JSON.stringify({ products, admins:customAdmins, orders, referrals, bonuses, lastSpins, bonusLog })
         });
         if(!res.ok){
             console.warn('[CLOUD] Save failed: HTTP '+res.status);
@@ -1417,6 +1502,7 @@ async function saveDataToCloud(){
                 localStorage.setItem('vapehab_referrals',JSON.stringify(referrals));
                 localStorage.setItem('vapehab_bonuses',JSON.stringify(bonuses));
                 localStorage.setItem('vapehab_lastSpins',JSON.stringify(lastSpins));
+                localStorage.setItem('vapehab_bonusLog',JSON.stringify(bonusLog));
             }catch(_){}
             return false;
         }
@@ -1430,6 +1516,7 @@ async function saveDataToCloud(){
             localStorage.setItem('vapehab_referrals',JSON.stringify(referrals));
             localStorage.setItem('vapehab_bonuses',JSON.stringify(bonuses));
             localStorage.setItem('vapehab_lastSpins',JSON.stringify(lastSpins));
+            localStorage.setItem('vapehab_bonusLog',JSON.stringify(bonusLog));
         }catch(_){}
         return false;
     }
@@ -1438,7 +1525,7 @@ async function saveDataToCloud(){
 async function refreshData(){
     showToast('Загрузка из облака...','info');
     await loadDataFromCloud(true);
-    try{ renderAdminList(); renderAdminsList(); renderAdminOrdersList(); renderAdminTabs(); renderUserOrders(); renderFavoritesScreen(); renderReferralStats(); updateBonusBalanceCard(); updateWheelButton(); }catch(e){}
+    try{ renderAdminList(); renderAdminsList(); renderAdminOrdersList(); renderAdminTabs(); renderUserOrders(); renderFavoritesScreen(); renderReferralStats(); updateBonusBalanceCard(); updateWheelButton(); renderBonusLog(); }catch(e){}
     showToast('Данные обновлены');
 }
 async function forceRefresh(){
@@ -2145,6 +2232,7 @@ function openAdmin(){
     if(!isAdmin){ showToast('Нет доступа','error'); return; }
     document.getElementById('admin-modal').classList.add('active');
     renderAdminTabs(); renderAdminList(); renderAdminsList(); renderAdminOrdersList(); updateFlavorsVisibility();
+    renderBonusLog();
     setTimeout(()=>{ const f=document.querySelector('.admin-tab'); if(f) f.click(); },10);
 }
 function closeAdmin(){ document.getElementById('admin-modal').classList.remove('active'); }
@@ -2462,7 +2550,10 @@ const ACTIONS={
     'open-wheel':             ()=>openWheelModal(),
     'close-wheel':            ()=>closeWheelModal(),
     'spin-wheel':             ()=>spinWheel(),
-    'goto-catalog':           ()=>{ switchTab('catalog'); }
+    'goto-catalog':           ()=>{ switchTab('catalog'); },
+    'open-bonus-panel':       ()=>{ const p=document.getElementById('panel-bonuses'); if(p){ p.style.display = (p.style.display === 'none' || !p.style.display) ? 'block' : 'none'; if(p.style.display==='block') renderBonusLog(); } },
+    'give-bonus':             ()=>changeBonus('give'),
+    'take-bonus':             ()=>changeBonus('take')
 };
 document.addEventListener('click', function(e){
     const el=e.target.closest('[data-action]');
