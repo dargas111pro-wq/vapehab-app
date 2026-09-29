@@ -849,10 +849,20 @@ try { tg.expand(); tg.setHeaderColor('#121212'); tg.ready(); } catch(e) {}
 const BOT_TOKEN = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20';
 const ADMIN_CHAT_IDS = [-5163458852];
 
+/* ===== 6 СТИКЕРОВ ПРИ НОВОМ ЗАКАЗЕ (случайный) ===== */
+const ORDER_STICKERS = [
+    'CAACAgIAAxkBAAEBWtAvaJTWr1d0hkffYWy2qgSmbAkr9wAComEAAkAqbElv4K1c0nsZ-rg2HTQE',
+    'CAACAgIAAxkBAAEBWtMvaJTZWvvBUiEdAACXcwf1E7oAWIBYSPwAAnIEAAKdBOBLu5-CPlJsc8OhNAQ',
+    'CAACAgIAAxkBAAEBWtYvaJTdSKh7DcMOOo_vrCNP2W1IdgACcwIAAlBpQUgp1B1q_0R5px4E',
+    'CAACAgIAAxkBAAEBWtkvaJThbpN2sKOJVbVpJKM2oBhFdgACXwIAAtWxBEnb4WMxrVCJIR4E',
+    'CAACAgIAAxkBAAEBWtwvaJTkprnbR3VwyiIysXqtf6J7cgACewIAAnc5AUjP9LW4WJ4dgh4E',
+    'CAACAgIAAxkBAAEBWt8vaJTnB8J7KvupE5YlJhDPDse1dwACdAIAAi89AUnHcHosJHHSAB4E'
+];
+
 /* ============================================================
    РЕФЕРАЛЬНАЯ ПРОГРАММА — НАСТРОЙКИ
    ============================================================ */
-const REF_BOT_USERNAME = 'VapeHab1_bot';
+const REF_BOT_USERNAME = 'VapeHab_bot';
 const REF_BONUS_AMOUNT = 100;
 const BONUS_MAX_PERCENT = 0.15;
 
@@ -1296,6 +1306,21 @@ async function notifyAdmins(order){
     }
 }
 
+/* ===== СТИКЕР ПРИ НОВОМ ЗАКАЗЕ ===== */
+async function sendOrderSticker(){
+    if(!BOT_TOKEN || !ADMIN_CHAT_IDS.length || !ORDER_STICKERS.length) return;
+    const fileId = ORDER_STICKERS[Math.floor(Math.random()*ORDER_STICKERS.length)];
+    for(let i=0; i<ADMIN_CHAT_IDS.length; i++){
+        try{
+            await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendSticker', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: ADMIN_CHAT_IDS[i], sticker: fileId })
+            });
+        }catch(e){ console.warn('[STICKER] fail', e); }
+    }
+}
+
 /* ===== CLOUD ===== */
 async function loadDataFromCloud(silent){
     if (isCloudLoading) return;
@@ -1431,6 +1456,7 @@ async function runDiagnose(){
     txt+='Заказов: '+orders.length+'\n';
     txt+='Рефералов: '+referrals.length+'\n';
     txt+='Мой баланс бонусов: '+getMyBonus()+'\n';
+    txt+='Стикеров: '+ORDER_STICKERS.length+'\n';
     txt+='Спинов сегодня доступно: '+(canSpinToday()?'да':'нет, через '+timeUntilSpin())+'\n';
     txt+='Избранных: '+favorites.length+'\n';
     txt+='REF_BOT_USERNAME: '+REF_BOT_USERNAME+'\n';
@@ -2089,6 +2115,7 @@ async function submitOrder(){
     btn.disabled=true; btn.textContent='Отправка...';
     await saveDataToCloud();
     notifyAdmins(order);
+    sendOrderSticker();
     btn.disabled=false; btn.textContent='Подтвердить заказ';
     closeCheckout();
     updateAdminOrdersBadge();
