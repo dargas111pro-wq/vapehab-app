@@ -861,7 +861,6 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
 <div class="toast" id="toast"></div>
 
 <script>
-/* ===== SAFE TELEGRAM ===== */
 const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp : {
     initDataUnsafe: {}, expand:function(){}, ready:function(){}, setHeaderColor:function(){},
     openTelegramLink:function(url){ try { window.open(url, '_blank'); } catch(e){} }
@@ -918,19 +917,18 @@ const SORT_MODES = [
     { id:'rating', label:'🏆 По рейтингу' }
 ];
 
-/* ===== КОЛЕСО ФОРТУНЫ — обновлённые призы ===== */
 const WHEEL_PRIZES = [
-    { label:'+1 Б',   amount:1,   color:'#2a9d8f', weight:2 },
-    { label:'+10 Б',  amount:10,  color:'#e63946', weight:2 },
-    { label:'+5 Б',   amount:5,   color:'#5dade2', weight:2 },
-    { label:'+15 Б',  amount:15,  color:'#f4a261' },
-    { label:'+20 Б',  amount:20,  color:'#9d4edd', weight:2 },
-    { label:'+30 Б',  amount:30,  color:'#f4c542', weight:2 },
-    { label:'+25 Б',  amount:25,  color:'#ff6b9d' },
-    { label:'+35 Б',  amount:35,  color:'#f4a261' },
-    { label:'+10 Б',  amount:10,  color:'#e63946', weight:2 },
-    { label:'+40 Б',  amount:40,  color:'#2ecc71', weight:0.1 },
-    { label:'+5 Б',   amount:5,   color:'#5dade2' }
+    { label:'+1 Б',   amount:1,   color:'#2a9d8f', weight:8 },
+    { label:'+10 Б',  amount:10,  color:'#e63946', weight:8 },
+    { label:'+5 Б',   amount:5,   color:'#5dade2', weight:8 },
+    { label:'+15 Б',  amount:15,  color:'#f4a261', weight:1 },
+    { label:'+20 Б',  amount:20,  color:'#9d4edd', weight:1 },
+    { label:'+30 Б',  amount:30,  color:'#f4c542', weight:1 },
+    { label:'+25 Б',  amount:25,  color:'#ff6b9d', weight:1 },
+    { label:'+35 Б',  amount:35,  color:'#f4a261', weight:1 },
+    { label:'+10 Б',  amount:10,  color:'#e63946', weight:6 },
+    { label:'+40 Б',  amount:40,  color:'#2ecc71', weight:0.05 },
+    { label:'+5 Б',   amount:5,   color:'#5dade2', weight:6 }
 ];
 const SPIN_COOLDOWN_MS = 24*60*60*1000;
 
@@ -1005,22 +1003,15 @@ function isFavorite(id){ return favorites.indexOf(id)!==-1; }
 function toggleFavorite(id){
     if(!id) return;
     const i = favorites.indexOf(id);
-    if(i===-1){
-        favorites.push(id);
-        showToast('❤️ Добавлено в избранное');
-    } else {
-        favorites.splice(i,1);
-        showToast('Удалено из избранного','info');
-    }
+    if(i===-1){ favorites.push(id); showToast('❤️ Добавлено в избранное'); }
+    else { favorites.splice(i,1); showToast('Удалено из избранного','info'); }
     saveFavorites();
     if(currentDetailProduct && currentDetailProduct.id===id) updateFavButtons(id);
     renderProducts();
     renderFavoritesScreen();
 }
 
-function getReferralLink(userId){
-    return 'https://t.me/' + REF_BOT_USERNAME + '?start=ref_' + userId;
-}
+function getReferralLink(userId){ return 'https://t.me/' + REF_BOT_USERNAME + '?start=ref_' + userId; }
 function extractStartParam(){
     try{ if(tg && tg.initDataUnsafe && tg.initDataUnsafe.start_param) return String(tg.initDataUnsafe.start_param); }catch(e){}
     try{
@@ -1116,7 +1107,6 @@ function awardReferralBonusIfNeeded(newUserId){
     return ref.referrerId;
 }
 
-/* ===== ВЫДАЧА БОНУСОВ ===== */
 function renderBonusLog(){
     const el = document.getElementById('bonus-log-list');
     if(!el) return;
@@ -1150,10 +1140,7 @@ async function changeBonus(direction){
         targetDisplay = 'ID ' + raw;
     } else {
         let foundUser = referrals.find(r => (r.newUserName||'').toLowerCase() === raw);
-        if(foundUser && foundUser.newUserId){
-            targetKey = String(foundUser.newUserId);
-            targetDisplay = '@' + raw;
-        }
+        if(foundUser && foundUser.newUserId){ targetKey = String(foundUser.newUserId); targetDisplay = '@' + raw; }
         if(!targetKey){
             const ord = orders.find(o => (o.username||'').toLowerCase() === raw);
             if(ord && ord.userId){ targetKey = String(ord.userId); targetDisplay = '@' + raw; }
@@ -1328,7 +1315,7 @@ async function sendReferralNotification(referrerId, invitedUser, amount){
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: referrerId, text, parse_mode: 'HTML' })
         });
-    }catch(e){ console.warn('[REF] notify fail', e); }
+    }catch(e){}
 }
 
 async function notifyAdmins(order){
@@ -1359,7 +1346,7 @@ async function notifyAdmins(order){
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: ADMIN_CHAT_IDS[i], text: text, parse_mode: 'HTML', disable_web_page_preview: true })
             });
-        }catch(e){ console.error('[NOTIFY]', e); }
+        }catch(e){}
     }
 }
 async function sendOrderSticker(){
@@ -1371,7 +1358,7 @@ async function sendOrderSticker(){
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: ADMIN_CHAT_IDS[i], sticker: fileId })
             });
-        }catch(e){ console.warn('[STICKER] fail', e); }
+        }catch(e){}
     }
 }
 
