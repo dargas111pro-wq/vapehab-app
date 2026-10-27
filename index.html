@@ -786,7 +786,7 @@ html,body{height:100vh;overflow:hidden;background-color:var(--bg-color);color:va
 <div class="image-upload-controls">
 <button type="button" class="image-upload-btn" data-action="upload-image"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Загрузить фото</button>
 <button type="button" class="image-clear-btn" data-action="clear-image">Убрать фото</button>
-<div class="image-upload-hint">JPG, PNG · 800px · высокое качество</div>
+<div class="image-upload-hint">Оригинальное качество · Автозагрузка</div>
 </div>
 </div>
 <input type="file" id="f-image-file" accept="image/*" style="display:none;">
@@ -1588,45 +1588,58 @@ function selectDelivery(method){
 function openImagePicker(){ document.getElementById('f-image-file').click(); }
 
 /* ================================================================
-   ИСПРАВЛЕННАЯ ФУНКЦИЯ СЖАТИЯ ФОТО
-   Было: 300px @ 0.6  →  слишком размыто
-   Стало: 800px @ 0.85 + высококачественный smoothing
+   НОВАЯ ФУНКЦИЯ: ОТПРАВЛЯЕТ ФОТО В ТЕЛЕГРАМ (БЕЗ СЖАТИЯ)
+   и сохраняет только ссылку
    ================================================================ */
-function handleImageFile(e){
+async function handleImageFile(e){
     const file=e.target.files&&e.target.files[0]; if(!file) return;
-    if(!file.type.startsWith('image/')){ showToast('Не изображение','error'); return; }
-    if(file.size>10*1024*1024){ showToast('Файл больше 10 МБ','error'); return; }
-    showToast('Обработка фото...','info');
-    const reader=new FileReader();
-    reader.onload=function(evt){
-        const img=new Image();
-        img.onload=function(){
-            const MAX=800;                        // было 300 — теперь 800px
-            let w=img.width, h=img.height;
-            if(w>MAX || h>MAX){                    // не апскейлим маленькие фото
-                if(w>h){ h=Math.round(h*MAX/w); w=MAX; }
-                else   { w=Math.round(w*MAX/h); h=MAX; }
-            }
-            const c=document.createElement('canvas');
-            c.width=w; c.height=h;
-            const ctx=c.getContext('2d');
-            ctx.imageSmoothingEnabled=true;        // высококачественное уменьшение
-            ctx.imageSmoothingQuality='high';      // (убирает «лесенку» и мыло)
-            ctx.drawImage(img,0,0,w,h);
+    if(!file.type.startsWith('image/')){ showToast('Пожалуйста, выберите изображение','error'); return; }
+    if(file.size>10*1024*1024){ showToast('Файл слишком большой (макс. 10 МБ)','error'); return; }
 
-            let url=c.toDataURL('image/jpeg',0.85); // было 0.6 — теперь 0.85
-            // Страховка: если вдруг получилось слишком жирно — второй проход
-            if(url.length > 400000){
-                url=c.toDataURL('image/jpeg',0.78);
-            }
-            document.getElementById('f-image').value=url;
-            renderImagePreview(url);
-            showToast('Фото загружено ('+Math.round(url.length/1024)+' КБ, '+w+'×'+h+')');
-        };
-        img.src=evt.target.result;
-    };
-    reader.readAsDataURL(file);
-    e.target.value='';
+    showToast('Загрузка фото в облако...','info');
+    const btn = document.querySelector('[data-action="upload-image"]');
+    if(btn){ btn.disabled = true; btn.textContent = 'Загрузка...'; }
+
+    try {
+        // Создаем форму и отправляем файл в Телеграм (как документ, чтобы без сжатия)
+        const formData = new FormData();
+        formData.append('chat_id', ADMIN_CHAT_IDS[0]);
+        formData.append('document', file);
+
+        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.description || 'Ошибка Telegram');
+
+        // Получаем путь к файлу
+        const fileId = data.result.document.file_id;
+        const res2 = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+        const data2 = await res2.json();
+        if (!data2.ok) throw new Error('Не удалось получить ссылку на файл');
+
+        // Формируем прямую ссылку
+        const imageUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${data2.result.file_path}`;
+
+        // Сохраняем URL в скрытое поле
+        document.getElementById('f-image').value = imageUrl;
+        renderImagePreview(imageUrl);
+        showToast('Фото загружено в высоком качестве ✅');
+
+        // Удаляем техническое сообщение из чата админа, чтобы не засорять
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ chat_id: ADMIN_CHAT_IDS[0], message_id: data.result.message_id })
+        }).catch(()=>{});
+
+    } catch(err) {
+        console.error(err);
+        showToast('Ошибка: ' + err.message, 'error');
+    } finally {
+        if(btn){ btn.disabled = false; btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Загрузить фото'; }
+        e.target.value='';
+    }
 }
 /* ================================================================ */
 
