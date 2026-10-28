@@ -869,23 +869,15 @@ try { tg.expand(); tg.setHeaderColor('#121212'); tg.ready(); } catch(e) {}
 
 // ==========================================
 // ТОКЕН БОТА-МАГАЗИНА (от которого открывается приложение)
-// ВСТАВЬ СЮДА ТОКЕН ОТ @VapeHab_bot
-const SHOP_BOT_TOKEN = "8826652145:AAEIqzwUy4S7WF862tV7t4fJObxivEE--Zo
-
-
-"
-
-
-';
-
+const SHOP_BOT_TOKEN = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20'; // ЗАМЕНИ НА ТОКЕН МАГАЗИНА!
 // ТОКЕН БОТА-МЕНЕДЖЕРА (который присылает заказы тебе)
-const ADMIN_BOT_TOKEN = '8826652145:AAEIqzwUy4S7WF862tV7t4fJObxivEE--Zo
-
-
-'; 
+const ADMIN_BOT_TOKEN = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20'; 
 // ==========================================
 
 const ADMIN_CHAT_IDS = [-5163458852];
+
+// ТВОЯ ССЫЛКА НА ВЕБХУК В TELEBOT CREATOR
+const WEBHOOK_URL = 'https://api.telebotcreator.com/webhook/95322451/restock';
 
 const ORDER_STICKERS = [
     'CAACAgIAAxkBAAER-Dxqu_JDCEZqAAGqzBYH0IyK8K936-4AAr0YAAIFvtlKqUlrGkDH4Uw9BA',
@@ -2209,10 +2201,7 @@ async function saveProduct(){
 }
 
 async function notifyFavoritesAboutRestock(product, addedQty) {
-    if(!product || !SHOP_BOT_TOKEN || SHOP_BOT_TOKEN === 'СЮДА_ВСТАВЬ_ТОКЕН_БОТА_МАГАЗИНА') {
-        showToast('Вставь токен бота-магазина в код!', 'error');
-        return;
-    }
+    if(!product) return;
     
     const targetUsers = [];
     for (const [uId, prodIds] of Object.entries(favoritesMap)) {
@@ -2221,59 +2210,52 @@ async function notifyFavoritesAboutRestock(product, addedQty) {
         }
     }
     
-    console.log('Пополнение товара:', product.name);
-    console.log('Кому отправлять:', targetUsers);
-
     if(!targetUsers.length) {
         showToast('Товар пополнен, но его нет в избранном ни у кого.', 'info');
         return;
     }
 
-    const qtyText = addedQty > 0 ? `+${addedQty} шт.` : `${product.stock} шт.`;
-    const txt = `⚡ <b>Поступление товара из вашего избранного!</b>\n\n📦 Товар «${escapeHtml(product.name)}» пополнен на складе!\n◼️ Поступило: ${qtyText}\n◼️ Всего в наличии: ${product.stock} шт.\n◼️ Цена: ${product.price} ₽\n\n<i>Успейте оформить заказ, пока товар есть в наличии! 🚀</i>`;
-    const kb = JSON.stringify({
-        inline_keyboard: [[{
-            text: "💨 Открыть товар в магазине",
-            web_app: { url: WEBAPP_URL + '?startapp=product_' + product.id }
-        }]]
-    });
-
-    for (const uId of targetUsers) {
-        try {
-            const resp = await fetch(`https://api.telegram.org/bot${SHOP_BOT_TOKEN}/sendMessage`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: uId, text: txt, parse_mode: 'HTML', reply_markup: kb })
-            });
-            const data = await resp.json();
-            if(data.ok) {
-                console.log('Сообщение отправлено', uId);
-            } else {
-                showToast('Ошибка отправки: ' + data.description, 'error');
-            }
-        } catch(e) { 
-            console.error('Ошибка отправки уведомления', e); 
-        }
+    try {
+        await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                users: targetUsers,
+                productId: product.id,
+                productName: product.name,
+                productPrice: product.price,
+                addedQty: addedQty,
+                totalStock: product.stock
+            })
+        });
+        showToast('Уведомления отправлены в бот', 'info');
+    } catch(e) {
+        console.error('Ошибка отправки в Telebot', e);
+        showToast('Ошибка соединения с ботом', 'error');
     }
 }
 
 async function testNotification(){
-    if(!SHOP_BOT_TOKEN || SHOP_BOT_TOKEN === 'СЮДА_ВСТАВЬ_ТОКЕН_БОТА_МАГАЗИНА') { 
-        showToast('Сначала вставь токен бота-магазина в код!', 'error'); 
-        return; 
-    }
     if(!currentUserId) { showToast('Нет ID пользователя', 'error'); return; }
     
     showToast('Отправка теста...', 'info');
     try {
-        const resp = await fetch(`https://api.telegram.org/bot${SHOP_BOT_TOKEN}/sendMessage`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: currentUserId, text: '🔔 Это тестовое сообщение! Если вы его видите, уведомления работают.', parse_mode: 'HTML' })
+        const resp = await fetch(WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                users: [String(currentUserId)],
+                productId: "test",
+                productName: "Тестовый товар",
+                productPrice: 100,
+                addedQty: 5,
+                totalStock: 5
+            })
         });
-        const data = await resp.json();
-        if(data.ok) {
-            showToast('Тест доставлен!');
+        if(resp.ok) {
+            showToast('Тест отправлен!');
         } else {
-            showToast('Ошибка: ' + data.description, 'error');
+            showToast('Ошибка HTTP: ' + resp.status, 'error');
         }
     } catch(e) {
         showToast('Ошибка сети: ' + e.message, 'error');
