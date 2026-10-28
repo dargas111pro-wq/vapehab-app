@@ -867,7 +867,18 @@ const tg = (window.Telegram && window.Telegram.WebApp) ? window.Telegram.WebApp 
 };
 try { tg.expand(); tg.setHeaderColor('#121212'); tg.ready(); } catch(e) {}
 
-const BOT_TOKEN = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20';
+// ==========================================
+// ТОКЕН БОТА-МАГАЗИНА (от которого открывается приложение)
+// ВСТАВЬ СЮДА ТОКЕН ОТ @VapeHab_bot
+const SHOP_BOT_TOKEN = '8826652145:AAEIqzwUy4S7WF862tV7t4fJObxivEE--Zo
+
+
+';
+
+// ТОКЕН БОТА-МЕНЕДЖЕРА (который присылает заказы тебе)
+const ADMIN_BOT_TOKEN = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20'; 
+// ==========================================
+
 const ADMIN_CHAT_IDS = [-5163458852];
 
 const ORDER_STICKERS = [
@@ -1315,11 +1326,11 @@ async function spinWheel(){
 }
 
 async function sendReferralNotification(referrerId, invitedUser, amount){
-    if(!BOT_TOKEN) return;
+    if(!SHOP_BOT_TOKEN) return;
     const name = ((invitedUser.first_name||'') + ' ' + (invitedUser.last_name||'')).trim() || 'Друг';
     const text = '🎁 <b>По вашей ссылке пришёл друг!</b>\n\n👤 ' + name + '\n💰 Вы получили +' + amount + ' бонусов';
     try{
-        await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+        await fetch('https://api.telegram.org/bot' + SHOP_BOT_TOKEN + '/sendMessage', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: referrerId, text, parse_mode: 'HTML' })
         });
@@ -1327,7 +1338,7 @@ async function sendReferralNotification(referrerId, invitedUser, amount){
 }
 
 async function notifyAdmins(order){
-    if(!BOT_TOKEN || !ADMIN_CHAT_IDS.length) return;
+    if(!ADMIN_BOT_TOKEN || !ADMIN_CHAT_IDS.length) return;
     const userName = order.username ? '@' + order.username :
         (order.userId ? '<a href="tg://user?id=' + order.userId + '">' + ((order.firstName || '') + ' ' + (order.lastName || '')).trim() + '</a>' :
         ((order.firstName || '') + ' ' + (order.lastName || '')).trim() || 'Клиент');
@@ -1350,7 +1361,7 @@ async function notifyAdmins(order){
     }
     for(let i=0; i<ADMIN_CHAT_IDS.length; i++){
         try{
-            await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+            await fetch('https://api.telegram.org/bot' + ADMIN_BOT_TOKEN + '/sendMessage', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: ADMIN_CHAT_IDS[i], text: text, parse_mode: 'HTML', disable_web_page_preview: true })
             });
@@ -1358,11 +1369,11 @@ async function notifyAdmins(order){
     }
 }
 async function sendOrderSticker(){
-    if(!BOT_TOKEN || !ADMIN_CHAT_IDS.length || !ORDER_STICKERS.length) return;
+    if(!ADMIN_BOT_TOKEN || !ADMIN_CHAT_IDS.length || !ORDER_STICKERS.length) return;
     const fileId = ORDER_STICKERS[Math.floor(Math.random()*ORDER_STICKERS.length)];
     for(let i=0; i<ADMIN_CHAT_IDS.length; i++){
         try{
-            await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendSticker', {
+            await fetch('https://api.telegram.org/bot' + ADMIN_BOT_TOKEN + '/sendSticker', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: ADMIN_CHAT_IDS[i], sticker: fileId })
             });
@@ -1620,7 +1631,7 @@ async function handleImageFile(e){
         formData.append('chat_id', ADMIN_CHAT_IDS[0]);
         formData.append('document', file);
 
-        const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendDocument`, {
+        const res = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/sendDocument`, {
             method: 'POST',
             body: formData
         });
@@ -1628,17 +1639,17 @@ async function handleImageFile(e){
         if (!data.ok) throw new Error(data.description || 'Ошибка Telegram');
 
         const fileId = data.result.document.file_id;
-        const res2 = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${fileId}`);
+        const res2 = await fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/getFile?file_id=${fileId}`);
         const data2 = await res2.json();
         if (!data2.ok) throw new Error('Не удалось получить ссылку на файл');
 
-        const imageUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${data2.result.file_path}`;
+        const imageUrl = `https://api.telegram.org/file/bot${ADMIN_BOT_TOKEN}/${data2.result.file_path}`;
 
         document.getElementById('f-image').value = imageUrl;
         renderImagePreview(imageUrl);
         showToast('Фото загружено в высоком качестве ✅');
 
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteMessage`, {
+        fetch(`https://api.telegram.org/bot${ADMIN_BOT_TOKEN}/deleteMessage`, {
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ chat_id: ADMIN_CHAT_IDS[0], message_id: data.result.message_id })
         }).catch(()=>{});
@@ -2192,7 +2203,11 @@ async function saveProduct(){
 }
 
 async function notifyFavoritesAboutRestock(product, addedQty) {
-    if(!product || !BOT_TOKEN) return;
+    if(!product || !SHOP_BOT_TOKEN || SHOP_BOT_TOKEN === 'СЮДА_ВСТАВЬ_ТОКЕН_БОТА_МАГАЗИНА') {
+        showToast('Вставь токен бота-магазина в код!', 'error');
+        return;
+    }
+    
     const targetUsers = [];
     for (const [uId, prodIds] of Object.entries(favoritesMap)) {
         if (Array.isArray(prodIds) && prodIds.includes(product.id)) {
@@ -2219,7 +2234,7 @@ async function notifyFavoritesAboutRestock(product, addedQty) {
 
     for (const uId of targetUsers) {
         try {
-            const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+            const resp = await fetch(`https://api.telegram.org/bot${SHOP_BOT_TOKEN}/sendMessage`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: uId, text: txt, parse_mode: 'HTML', reply_markup: kb })
             });
@@ -2236,10 +2251,15 @@ async function notifyFavoritesAboutRestock(product, addedQty) {
 }
 
 async function testNotification(){
-    if(!BOT_TOKEN || !currentUserId) { showToast('Нет токена или ID', 'error'); return; }
+    if(!SHOP_BOT_TOKEN || SHOP_BOT_TOKEN === 'СЮДА_ВСТАВЬ_ТОКЕН_БОТА_МАГАЗИНА') { 
+        showToast('Сначала вставь токен бота-магазина в код!', 'error'); 
+        return; 
+    }
+    if(!currentUserId) { showToast('Нет ID пользователя', 'error'); return; }
+    
     showToast('Отправка теста...', 'info');
     try {
-        const resp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        const resp = await fetch(`https://api.telegram.org/bot${SHOP_BOT_TOKEN}/sendMessage`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ chat_id: currentUserId, text: '🔔 Это тестовое сообщение! Если вы его видите, уведомления работают.', parse_mode: 'HTML' })
         });
