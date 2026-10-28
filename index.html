@@ -935,8 +935,8 @@ let myPerms=[], currentCategory='all', products=[], customAdmins=[], orders=[];
 let cart=[], currentProduct=null, currentFlavorIndex=-1, newAdminPerms=[];
 let selectedDelivery='delivery', isCloudLoading=false, cloudError='';
 let currentDetailProduct=null, reviewRating=5, reviewAnonymous=false;
-let favorites = []; // Локальный кэш
-let favoritesMap = {}; // Облако: { userId: [productId1, productId2] }
+let favorites = []; 
+let favoritesMap = {}; 
 let sortMode = 'popular';
 let onlyInStock = false;
 let referrals = [];
@@ -994,9 +994,7 @@ function getUnavailableItems(){
     return out;
 }
 
-// --- ЛОГИКА ИЗБРАННОГО ---
 function syncLocalFavorites() {
-    // Обновляем локальный массив из облачной мапы для текущего пользователя
     const idKey = String(currentUserId);
     favorites = favoritesMap[idKey] || [];
     try{ localStorage.setItem(FAV_KEY, JSON.stringify(favorites)); }catch(e){}
@@ -1018,7 +1016,6 @@ function toggleFavorite(id){
     renderProducts();
     renderFavoritesScreen();
 }
-// -------------------------
 
 function getReferralLink(userId){ return 'https://t.me/' + REF_BOT_USERNAME + '?start=ref_' + userId; }
 function extractStartParam(){
@@ -2171,7 +2168,6 @@ async function saveProduct(){
         if(i!==-1) {
             const oldP = products[i];
             oldTotal = getProductTotalStock(oldP);
-            // Проверка на пополнение (было 0 или добавились новые вкусы)
             if(oldTotal === 0 && total > 0) isRestock = true;
             products[i]=Object.assign({},products[i],data);
         }
@@ -2187,13 +2183,13 @@ async function saveProduct(){
     btn.disabled=false;
     if(ok) showToast(editId?'Обновлено':'Добавлено');
 
-    // Запускаем рассылку, если товар пополнился
     if(isRestock) {
-        notifyFavoritesAboutRestock(products.find(p => p.name === name));
+        const updatedProd = products.find(p => p.name === name);
+        notifyFavoritesAboutRestock(updatedProd, total - oldTotal);
     }
 }
 
-async function notifyFavoritesAboutRestock(product) {
+async function notifyFavoritesAboutRestock(product, addedQty) {
     if(!product || !BOT_TOKEN) return;
     const targetUsers = [];
     for (const [uId, prodIds] of Object.entries(favoritesMap)) {
@@ -2203,10 +2199,11 @@ async function notifyFavoritesAboutRestock(product) {
     }
     if(!targetUsers.length) return;
 
-    const txt = `⚡ <b>Поступление товара из вашего избранного!</b>\n\n📦 Товар «${escapeHtml(product.name)}» снова в наличии!\n💰 Цена: ${product.price} ₽\n\n<i>Успейте оформить заказ, пока товар есть в наличии! 🚀</i>`;
+    const qtyText = addedQty > 0 ? `+${addedQty} шт.` : `${product.stock} шт.`;
+    const txt = `⚡ <b>Поступление товара из вашего избранного!</b>\n\n📦 Товар «${escapeHtml(product.name)}» пополнен на складе!\n◼️ Поступило: ${qtyText}\n◼️ Всего в наличии: ${product.stock} шт.\n◼️ Цена: ${product.price} ₽\n\n<i>Успейте оформить заказ, пока товар есть в наличии! 🚀</i>`;
     const kb = JSON.stringify({
         inline_keyboard: [[{
-            text: "Открыть товар в магазине",
+            text: "💨 Открыть товар в магазине",
             web_app: { url: WEBAPP_URL + '?startapp=product_' + product.id }
         }]]
     });
@@ -2523,7 +2520,6 @@ async function initApp(){
     try{ renderCart(); }catch(e){}
     try{ updateBonusBalanceCard(); updateWheelButton(); }catch(e){}
 
-    // Если пользователь перешел по кнопке "Открыть товар" из бота
     const startParam = extractStartParam();
     if (startParam && startParam.startsWith('product_')) {
         const prodId = startParam.replace('product_', '');
