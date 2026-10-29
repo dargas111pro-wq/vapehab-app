@@ -876,8 +876,8 @@ const ADMIN_BOT_TOKEN = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20';
 
 const ADMIN_CHAT_IDS = [-5163458852];
 
-// ТВОЙ ID ДЛЯ ТЕСТА
-const MY_TEST_ID = '7795597586'; 
+// ССЫЛКА НА ТВОЙ CLOUDFLARE WORKER
+const WORKER_URL = 'https://round-base-8073.dargas11pro.workers.dev';
 
 const ORDER_STICKERS = [
     'CAACAgIAAxkBAAER-Dxqu_JDCEZqAAGqzBYH0IyK8K936-4AAr0YAAIFvtlKqUlrGkDH4Uw9BA',
@@ -2202,24 +2202,20 @@ async function saveProduct(){
 
 async function notifyFavoritesAboutRestock(product, addedQty) {
     if(!product) return;
-    
-    const dataToSend = {
-        productId: product.id,
-        productName: product.name,
-        productPrice: product.price,
-        addedQty: addedQty,
-        totalStock: product.stock
-    };
-
-    const botToken = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20';
-    const chatId = MY_TEST_ID;
-    const text = '/restock ' + JSON.stringify(dataToSend);
-
-    const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(text)}`;
 
     try {
-        await fetch(url, { method: 'GET', mode: 'no-cors' });
-        showToast('Сигнал отправлен боту', 'info');
+        await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                productId: product.id,
+                productName: product.name,
+                productPrice: product.price,
+                addedQty: addedQty,
+                totalStock: product.stock
+            })
+        });
+        showToast('Сигнал отправлен', 'info');
     } catch(e) {
         console.error('Ошибка', e);
     }
@@ -2230,19 +2226,17 @@ async function testNotification(){
     
     showToast('Отправка теста...', 'info');
     try {
-        const dataToSend = {
-            productId: "test",
-            productName: "Тестовый товар",
-            productPrice: 100,
-            addedQty: 5,
-            totalStock: 5
-        };
-        const text = '/restock ' + JSON.stringify(dataToSend);
-        const botToken = '8687891244:AAFCoDEI3G7gGnmXowxtX_mzKL3dU5aCU20';
-        
-        const url = `https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${MY_TEST_ID}&text=${encodeURIComponent(text)}`;
-        
-        await fetch(url, { method: 'GET', mode: 'no-cors' });
+        await fetch(WORKER_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                productId: "test",
+                productName: "Тестовый товар",
+                productPrice: 100,
+                addedQty: 5,
+                totalStock: 5
+            })
+        });
         showToast('Тест отправлен (проверь бота)');
     } catch(e) {
         showToast('Ошибка сети: ' + e.message, 'error');
