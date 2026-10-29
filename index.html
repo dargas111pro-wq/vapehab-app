@@ -2218,7 +2218,8 @@ async function notifyFavoritesAboutRestock(product, addedQty) {
     try {
         await fetch(WEBHOOK_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'no-cors', 
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
                 users: targetUsers,
                 productId: product.id,
@@ -2231,7 +2232,6 @@ async function notifyFavoritesAboutRestock(product, addedQty) {
         showToast('Уведомления отправлены в бот', 'info');
     } catch(e) {
         console.error('Ошибка отправки в Telebot', e);
-        showToast('Ошибка соединения с ботом', 'error');
     }
 }
 
@@ -2240,9 +2240,10 @@ async function testNotification(){
     
     showToast('Отправка теста...', 'info');
     try {
-        const resp = await fetch(WEBHOOK_URL, {
+        await fetch(WEBHOOK_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
             body: JSON.stringify({
                 users: [String(currentUserId)],
                 productId: "test",
@@ -2252,11 +2253,7 @@ async function testNotification(){
                 totalStock: 5
             })
         });
-        if(resp.ok) {
-            showToast('Тест отправлен!');
-        } else {
-            showToast('Ошибка HTTP: ' + resp.status, 'error');
-        }
+        showToast('Тест отправлен (проверь бота)');
     } catch(e) {
         showToast('Ошибка сети: ' + e.message, 'error');
     }
